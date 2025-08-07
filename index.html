@@ -1,35 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Network Protocol - 播客第1期</title>
+  <title>播客：小白也能听懂的技术</title>
   <style>
-    body {
-      font-family: sans-serif;
-      background: #f9f9f9;
-      text-align: center;
-      padding: 40px;
-    }
-    img {
-      width: 300px;
-      border-radius: 16px;
-      margin-bottom: 20px;
-    }
-    audio {
-      width: 80%;
-      max-width: 600px;
-      margin-top: 20px;
-    }
+    body { font-family: 'Helvetica Neue', sans-serif; margin: 0; padding: 0; background: #f9f9f9; }
+    header { background: #0e101c; color: white; padding: 2rem; text-align: center; }
+    header h1 { margin: 0 0 0.5rem 0; font-size: 2rem; }
+    header p { margin: 0; color: #aaa; }
+    .section { max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+    .latest, .episode-list { background: white; padding: 1.5rem; margin-bottom: 2rem; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    .episode { border-bottom: 1px solid #eee; padding: 1rem 0; }
+    .episode:last-child { border-bottom: none; }
+    .episode h3 { margin: 0; font-size: 1.2rem; }
+    .episode p { margin: 0.5rem 0 0; color: #555; }
+    .button { display: inline-block; margin-top: 1rem; padding: 0.5rem 1rem; background: #005fff; color: white; border-radius: 5px; text-decoration: none; }
   </style>
 </head>
 <body>
-  <h1>🎙️ Network Protocol</h1>
-  <p>第1期播客：介绍网络协议的基本概念</p>
-  <img src="https://raw.githubusercontent.com/Niutie/podcast-assets/main/ep001/cover.jpg" alt="封面" />
-  <audio controls>
-    <source src="https://raw.githubusercontent.com/Niutie/podcast-assets/main/ep001/network_protocol.m4a" type="audio/mp4">
-    您的浏览器不支持音频播放。
-  </audio>
+  <header>
+    <h1>🎙 小白也能听懂的技术播客</h1>
+    <p>简单聊聊技术、产品、行业趋势，和每一个你有关。</p>
+  </header>
+
+  <div class="section latest">
+    <h2>📌 最新一期</h2>
+    <h3>Network Protocol - 小白也能听懂的网络协议</h3>
+    <p>这期我们聊聊看似高深但其实很生活化的网络协议。从HTTP、TCP聊到API接口的本质。</p>
+    <a href="https://podcast-player-eta.vercel.app/" class="button" target="_blank">立即收听</a>
+  </div>
+
+  <div class="section episode-list">
+    <h2>📚 往期回顾</h2>
+
+    <div class="episode">
+      <h3>EP02：浏览器是怎么工作的？</h3>
+      <p>从输入网址到页面加载，中间到底发生了什么？</p>
+    </div>
+    <div class="episode">
+      <h3>EP01：什么是API网关？</h3>
+      <p>我们用古代关隘的例子，带你一听就懂！</p>
+    </div>
+    <!-- 你可以在这里继续添加更多历史 -->
+  </div>
 </body>
 </html>
