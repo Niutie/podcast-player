@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <title>派拉API网关产品部门培训</title>
   <meta name="description" content="企业培训播客：搜索、分类、当期内容、自定义音频播放器、往期回顾。" />
   <link rel="icon" href="/favicon.ico" />
@@ -13,7 +13,7 @@
   <style>
     :root{ --bg:#f5f6f8;--surface:#ffffff;--ink:#0b1220;--muted:#6b7280;--line:#e6e8ee;--brand:#111827;--pill:#eef2f7;--pill-active:#111827;--pill-active-ink:#ffffff;--badge:#111827;--accent:#111827; --radius-xl:24px;--radius-lg:16px;--radius-md:12px;--shadow:0 4px 16px rgba(17,24,39,.08); --maxw:960px }
     *{box-sizing:border-box}
-    html,body{height:100%}
+    html,body{height:100%; touch-action: pan-x pan-y; -ms-touch-action: manipulation; -webkit-text-size-adjust: 100%;}
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:var(--ink);background:var(--bg)}
     a{color:var(--accent);text-decoration:none}
 
@@ -404,9 +404,7 @@
           entries.forEach(entry=>{
             if(entry.isIntersecting){
               const article = entry.target; io.unobserve(article);
-              const player = article.querySelector('[data-player]');
-              const audio = player?.querySelector('audio');
-              if(audio && audio.readyState===0){ try{ audio.preload='metadata'; audio.load(); }catch(e){} }
+              // 仅在可见时补齐文本等详情，不触发任何音频加载
               if(typeof article._hydrate === 'function'){ article._hydrate(); }
             }
           });
@@ -416,5 +414,22 @@
     }
   })();
   </script>
+<script>
+// 关闭双指缩放 / 双击放大（移动端 WebView 兼容）
+(function(){
+  const opt = { passive: false };
+  // 多指触控（pinch）直接拦截
+  document.addEventListener('touchstart', function(e){ if(e.touches.length > 1){ e.preventDefault(); } }, opt);
+  // iOS Safari 专有手势事件
+  document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, opt);
+  document.addEventListener('gesturechange', function(e){ e.preventDefault(); }, opt);
+  document.addEventListener('gestureend', function(e){ e.preventDefault(); }, opt);
+  // 双击放大拦截
+  let last = 0;
+  document.addEventListener('touchend', function(e){ const now = Date.now(); if(now - last < 300){ e.preventDefault(); } last = now; }, opt);
+  // 桌面端 Ctrl+滚轮缩放
+  document.addEventListener('wheel', function(e){ if(e.ctrlKey){ e.preventDefault(); } }, opt);
+})();
+</script>
 </body>
 </html>
