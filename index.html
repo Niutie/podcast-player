@@ -61,14 +61,20 @@
     /* 自定义播放器 */
     .player{background:#fafbff;border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:0 6px 18px rgba(17,24,39,.06)}
     .controls{display:flex;justify-content:center;align-items:center;gap:14px;margin:10px 0}
-    .btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid var(--line);background:linear-gradient(180deg,#fff,#f5f6fa);border-radius:999px;cursor:pointer;box-shadow:0 4px 12px rgba(17,24,39,.08);transition:.15s ease;padding:0}
+    .btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:40px;border:1px solid var(--line);background:linear-gradient(180deg,#fff,#f5f6fa);border-radius:12px;cursor:pointer;box-shadow:0 4px 12px rgba(17,24,39,.08);transition:.15s ease;padding:0 12px;font-weight:700}
     .btn:hover{transform:translateY(-1px)}
     .btn:active{transform:translateY(0)}
     .btn:disabled{opacity:.5;cursor:default}
-    .btn.round{width:52px;height:52px;background:linear-gradient(180deg,#111827,#1f2937);color:#fff;border-color:#0f1625;box-shadow:0 10px 18px rgba(17,24,39,.25)}
-    .btn.round svg{filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))}
+    .btn svg{pointer-events:none}
+    .btn.rate{min-width:56px;font-weight:700}
+    .btn.primary{background:linear-gradient(180deg,#111827,#1f2937);color:#fff;border-color:#0f1625;box-shadow:0 10px 18px rgba(17,24,39,.25)}
+    .btn:hover{transform:translateY(-1px)}
+    .btn:active{transform:translateY(0)}
     .btn:disabled{opacity:.5;cursor:default}
-    .btn.round{border-radius:14px}
+    
+    
+    .btn:disabled{opacity:.5;cursor:default}
+    
     .time{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
     .range{width:100%;-webkit-appearance:none;background:linear-gradient(180deg,#e9edf6,#e1e6f2);height:8px;border-radius:999px;outline:none;border:1px solid var(--line)}
     .range::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#ffffff;border:1px solid #d7dce6;box-shadow:0 2px 6px rgba(17,24,39,.16)}
@@ -78,6 +84,9 @@
     .load .btn{padding:10px 14px;border-radius:999px}
 
     footer{color:var(--muted);text-align:center;margin:22px 0 30px}
+    .dock{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -8px 24px rgba(17,24,39,.08);padding:8px 12px;z-index:50}
+    .dock [data-player]{max-width:var(--maxw);margin:0 auto}
+  
   </style>
 </head>
 <body>
@@ -108,7 +117,7 @@
     <section id="list" class="list"></section>
     <div class="load"><button id="more" class="btn">加载更多</button></div>
   </main>
-
+  <div id="dock" class="dock" hidden></div>
   <footer>© <span id="year"></span> 企业培训播客 · Cloudflare Pages</footer>
 
   <template id="cardTpl">
@@ -128,13 +137,14 @@
             <button class="btn" data-skip="-15" title="后退15秒" onclick="window.__pp.skip(this,-15)">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 19l-7-7 7-7"/><path d="M20 19l-7-7 7-7"/></svg>
             </button>
-            <button class="btn round" data-toggle title="播放/暂停" onclick="window.__pp.playPause(this)">
-              <svg class="ico-play" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
-              <svg class="ico-pause" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+            <button class="btn primary" data-toggle title="播放/暂停" onclick="window.__pp.playPause(this)">
+              <svg class="ico-play" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+              <svg class="ico-pause" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
             </button>
             <button class="btn" data-skip="30" title="快进30秒" onclick="window.__pp.skip(this,30)">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 5l7 7-7 7"/><path d="M4 5l7 7-7 7"/></svg>
             </button>
+            <button class="btn rate" data-rate onclick="window.__pp.rate(this)">1x</button>
           </div>
           <div class="time"><span data-cur>00:00</span><span data-dur>--:--</span></div>
         </div>
@@ -160,13 +170,14 @@
             <button class="btn" data-skip="-15" title="后退15秒" onclick="window.__pp.skip(this,-15)">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 19l-7-7 7-7"/><path d="M20 19l-7-7 7-7"/></svg>
             </button>
-            <button class="btn round" data-toggle title="播放/暂停" onclick="window.__pp.playPause(this)">
-              <svg class="ico-play" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
-              <svg class="ico-pause" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+            <button class="btn primary" data-toggle title="播放/暂停" onclick="window.__pp.playPause(this)">
+              <svg class="ico-play" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+              <svg class="ico-pause" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
             </button>
             <button class="btn" data-skip="30" title="快进30秒" onclick="window.__pp.skip(this,30)">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 5l7 7-7 7"/><path d="M4 5l7 7-7 7"/></svg>
             </button>
+            <button class="btn rate" data-rate onclick="window.__pp.rate(this)">1x</button>
           </div>
           <div class="time"><span data-cur>00:00</span><span data-dur>--:--</span></div>
         </div>
@@ -239,6 +250,7 @@
         const playBtn = root.querySelector('[data-toggle]');
         const iconPlay = playBtn.querySelector('.ico-play');
         const iconPause = playBtn.querySelector('.ico-pause');
+        const rateBtn = root.querySelector('[data-rate]');
 
         function toTime(t){ const s=Math.floor(t); const m=Math.floor(s/60), r=s%60; return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`; }
 
@@ -251,6 +263,7 @@
         });
         audio.addEventListener('play', ()=>{ iconPlay.style.display='none'; iconPause.style.display='block'; });
         audio.addEventListener('pause',()=>{ iconPlay.style.display='block'; iconPause.style.display='none'; });
+        if(rateBtn){ rateBtn.textContent = (audio.playbackRate.toFixed(1).replace(/\.0$/, '')) + 'x'; }
       },
       seek(input){
         const root = input.closest('[data-player]');
@@ -267,6 +280,16 @@
         const root = btn.closest('[data-player]');
         const audio = root.querySelector('audio');
         audio.currentTime = Math.max(0, Math.min((audio.currentTime||0)+delta, audio.duration||Infinity));
+      },
+      rate(btn){
+        const root = btn.closest('[data-player]');
+        const audio = root.querySelector('audio');
+        const steps = [1, 1.2, 1.5];
+        const cur = parseFloat(audio.playbackRate.toFixed(1));
+        const i = Math.max(0, steps.indexOf(cur));
+        const next = steps[(i+1)%steps.length];
+        audio.playbackRate = next;
+        btn.textContent = (next.toString().replace(/\.0$/, '')) + 'x';
       }
     };
 
@@ -303,10 +326,27 @@
     }
 
     function render(){
+      // 在重绘前，尝试把正在播放的播放器移到 dock，避免被销毁
+      preserveIfPlaying();
+
       feature.innerHTML = '';
       list.innerHTML = '';
       const total = S.filtered.length;
       if(total === 0){ count.textContent = '显示 0/0 期'; more.disabled = true; return; }
+
+      const first = S.filtered[0];
+      feature.appendChild(renderFeature(first));
+
+      const rest = S.filtered.slice(1);
+      S._rest = rest;
+      count.textContent = `显示 ${Math.min(S.page*PAGE_SIZE + Math.min(PAGE_SIZE, rest.length), rest.length)}/${rest.length} 期`;
+      more.disabled = rest.length === 0;
+      S.page = 0;
+      loadMore();
+
+      // 重绘后尝试把播放器放回对应卡片
+      tryAttachBack();
+    }
 
       const first = S.filtered[0];
       feature.appendChild(renderFeature(first));
@@ -322,6 +362,7 @@
     function renderFeature(ep){
       const t = document.getElementById('featureTpl');
       const node = t.content.cloneNode(true);
+      const article = node.querySelector('article.feature');
       const img = node.querySelector('.img');
       const tag = node.querySelector('.tag');
       const title = node.querySelector('.title');
@@ -330,6 +371,7 @@
       const audio = node.querySelector('audio');
       const player = node.querySelector('[data-player]');
 
+      if(article) article.dataset.id = ep.id || '';
       img.src = ep.cover || '';
       img.alt = ep.title || '';
       if(ep.tags && ep.tags[0]){ tag.hidden = false; tag.textContent = ep.tags[0]; }
@@ -348,6 +390,7 @@
     function renderCard(ep){
       const t = document.getElementById('cardTpl');
       const node = t.content.cloneNode(true);
+      const article = node.querySelector('article.card');
       const img = node.querySelector('.img');
       const tag = node.querySelector('.tag');
       const title = node.querySelector('.title');
@@ -355,6 +398,7 @@
       const desc = node.querySelector('.desc');
       const audio = node.querySelector('audio');
       const player = node.querySelector('[data-player]');
+      if(article) article.dataset.id = ep.id || '';
       img.src = ep.cover || '';
       img.alt = ep.title || '';
       if(ep.tags && ep.tags[0]){ tag.hidden = false; tag.textContent = ep.tags[0]; }
@@ -379,11 +423,22 @@
       count.textContent = `显示 ${Math.min(end, S._rest.length)}/${S._rest.length} 期`;
       if(end >= S._rest.length){ more.disabled = true; more.textContent = '没有更多了'; }
       else { more.disabled = false; more.textContent = '加载更多'; }
+      tryAttachBack();
+    }/${S._rest.length} 期`;
+      if(end >= S._rest.length){ more.disabled = true; more.textContent = '没有更多了'; }
+      else { more.disabled = false; more.textContent = '加载更多'; }
     }
 
     async function init(){
       try{
         const res = await fetch(DATA, {cache:'no-store'});
+        const data = await res.json();
+        const eps = Array.isArray(data.episodes) ? data.episodes : [];
+        S.raw = eps;
+        buildChips();
+        apply();
+      }catch(e){ console.error(e); }
+    });
         const data = await res.json();
         const eps = Array.isArray(data.episodes) ? data.episodes : [];
         S.raw = eps;
@@ -396,6 +451,26 @@
 
     more.addEventListener('click', loadMore);
     q.addEventListener('input', e => { S.q = e.target.value; apply(); });
+
+    // 播放器保护：把当前播放移到 dock（避免在重绘时被销毁），并在重绘后尝试放回
+    const dock = document.getElementById('dock');
+    function preserveIfPlaying(){
+      const playing = Array.from(document.querySelectorAll('audio')).find(a => !a.paused && !a.ended && a.readyState>0);
+      if(!playing) return;
+      const player = playing.closest('[data-player]');
+      const article = playing.closest('article');
+      S.preservedId = article?.dataset.id || null;
+      if(player && dock){ dock.innerHTML=''; dock.appendChild(player); dock.hidden=false; }
+    }
+    function tryAttachBack(){
+      if(!S.preservedId) return;
+      const host = document.querySelector(`article[data-id="${S.preservedId}"] [data-player]`);
+      if(host && dock.firstElementChild){
+        host.replaceWith(dock.firstElementChild);
+        dock.hidden = true;
+        S.preservedId = null;
+      }
+    }
 
     init();
   })();
