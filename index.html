@@ -6,6 +6,7 @@
   <title>派拉API网关产品部门培训</title>
   <meta name="description" content="企业培训播客：搜索、分类、当期内容、自定义音频播放器、往期回顾。" />
   <link rel="icon" href="/favicon.ico" />
+  <link rel="preload" href="/data/episodes.json" as="fetch">
   <style>
     :root{ --bg:#f5f6f8;--surface:#ffffff;--ink:#0b1220;--muted:#6b7280;--line:#e6e8ee;--brand:#111827;--pill:#eef2f7;--pill-active:#111827;--pill-active-ink:#ffffff;--badge:#111827;--accent:#111827; --radius-xl:24px;--radius-lg:16px;--radius-md:12px;--shadow:0 4px 16px rgba(17,24,39,.08); --maxw:960px }
     *{box-sizing:border-box}
@@ -104,12 +105,12 @@
     <div class="load"><button id="more" class="btn">加载更多</button></div>
   </main>
   <div id="dock" class="dock" hidden></div>
-  <footer>© <span id="year"></span> 企业培训播客 · Cloudflare Pages</footer>
+  <footer>© <span id="year"></span> API网关培训播客</footer>
 
   <template id="cardTpl">
     <article class="card">
       <div class="cover">
-        <img class="img" alt="" />
+        <img class="img" alt="" loading="lazy" decoding="async" />
         <span class="tag" hidden></span>
       </div>
       <div class="pad">
@@ -141,7 +142,7 @@
   <template id="featureTpl">
     <article class="feature">
       <div class="cover">
-        <img class="img" alt="" />
+        <img class="img" alt="" loading="eager" fetchpriority="high" />
         <span class="badge">最新期</span>
         <span class="tag" hidden></span>
       </div>
@@ -174,7 +175,7 @@
   <script>
   ;(() => {
     const DATA = '/data/episodes.json';
-    const PAGE_SIZE = 6;
+    const PAGE_SIZE = 4;
 
     const el = sel => document.querySelector(sel);
     const feature = el('#feature');
@@ -213,7 +214,7 @@
         if(rateBtn){ rateBtn.textContent=(audio.playbackRate.toFixed(1).replace(/\.0$/, ''))+'x'; }
       },
       seek(input){ const root=input.closest('[data-player]'); const audio=root.querySelector('audio'); if(isFinite(audio.duration)) audio.currentTime=(input.value/100)*audio.duration; },
-      playPause(btn){ const root=btn.closest('[data-player]'); const audio=root.querySelector('audio'); document.querySelectorAll('audio').forEach(a=>{ if(a!==audio) a.pause(); }); audio.paused?audio.play():audio.pause(); },
+      playPause(btn){ const root=btn.closest('[data-player]'); const audio=root.querySelector('audio'); if(audio.readyState===0){ try{ audio.load(); }catch(e){} } document.querySelectorAll('audio').forEach(a=>{ if(a!==audio) a.pause(); }); audio.paused?audio.play():audio.pause(); },
       skip(btn, d){ const root=btn.closest('[data-player]'); const audio=root.querySelector('audio'); audio.currentTime=Math.max(0, Math.min((audio.currentTime||0)+d, audio.duration||Infinity)); },
       rate(btn){ const root=btn.closest('[data-player]'); const audio=root.querySelector('audio'); const steps=[1,1.2,1.5]; const cur=parseFloat(audio.playbackRate.toFixed(1)); const i=Math.max(0, steps.indexOf(cur)); const next=steps[(i+1)%steps.length]; audio.playbackRate=next; btn.textContent=(next.toString().replace(/\.0$/, ''))+'x'; }
     };
@@ -245,7 +246,9 @@
 
     function renderFeature(ep){
       const t=document.getElementById('featureTpl'); const node=t.content.cloneNode(true);
-      const article=node.querySelector('article.feature'); const img=node.querySelector('.img'); const tag=node.querySelector('.tag'); const title=node.querySelector('.title'); const meta=node.querySelector('.meta'); const desc=node.querySelector('.desc'); const audio=node.querySelector('audio'); const player=node.querySelector('[data-player]');
+      const article=node.querySelector('article.feature'); const img=node.querySelector('.img'); const tag=node.querySelector('.tag'); const title=node.querySelector('.title'); const meta=node.querySelector('.meta'); const desc=node.querySelector('.desc'); const audio = node.querySelector('audio');
+      const player = node.querySelector('[data-player]');
+      audio.setAttribute('preload','none');
       if(article) article.dataset.id=ep.id||''; img.src=ep.cover||''; img.alt=ep.title||''; if(ep.tags&&ep.tags[0]){ tag.hidden=false; tag.textContent=ep.tags[0]; }
       title.textContent=ep.title||'未命名节目'; const date=fmtDate(ep.date); const dur=fmtDur(ep.duration); meta.textContent=`${date?date:''}${date&&dur?' · ':''}${dur?dur:''}`; desc.textContent=ep.description||'';
       wireSources(audio, ep); window.__pp.initOne(player); return node;
