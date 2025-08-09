@@ -7,14 +7,10 @@
   <meta name="description" content="企业培训播客：搜索、分类、当期内容、自定义音频播放器、往期回顾。" />
   <link rel="icon" href="/favicon.ico" />
   <style>
-    :root{
-      --bg:#f5f6f8;--surface:#ffffff;--ink:#0b1220;--muted:#6b7280;--line:#e6e8ee;--brand:#111827;--pill:#eef2f7;--pill-active:#111827;--pill-active-ink:#ffffff;--badge:#111827;--accent:#111827;
-      --radius-xl:24px;--radius-lg:16px;--radius-md:12px;--shadow:0 4px 16px rgba(17,24,39,.08);
-      --maxw:960px
-    }
+    :root{ --bg:#f5f6f8;--surface:#ffffff;--ink:#0b1220;--muted:#6b7280;--line:#e6e8ee;--brand:#111827;--pill:#eef2f7;--pill-active:#111827;--pill-active-ink:#ffffff;--badge:#111827;--accent:#111827; --radius-xl:24px;--radius-lg:16px;--radius-md:12px;--shadow:0 4px 16px rgba(17,24,39,.08); --maxw:960px }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; color:var(--ink);background:var(--bg)}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:var(--ink);background:var(--bg)}
     a{color:var(--accent);text-decoration:none}
 
     header{position:sticky;top:0;z-index:20;background:rgba(245,246,248,.9);backdrop-filter:saturate(1.2) blur(8px);border-bottom:1px solid var(--line)}
@@ -34,7 +30,6 @@
     .chip{appearance:none;border:1px solid var(--line);cursor:pointer;padding:8px 14px;border-radius:999px;background:var(--pill);color:#111827;font-weight:600;font-size:14px;transition:.2s ease;border-color:transparent}
     .chip:hover{transform:translateY(-1px)}
     .chip.active{background:var(--pill-active);color:var(--pill-active-ink);box-shadow:0 4px 10px rgba(17,24,39,.12)}
-    .chip.active{background:var(--pill-active);color:var(--pill-active-ink)}
 
     /* 分段标题 */
     .section{margin:14px 0 10px;font-weight:800}
@@ -65,16 +60,8 @@
     .btn:hover{transform:translateY(-1px)}
     .btn:active{transform:translateY(0)}
     .btn:disabled{opacity:.5;cursor:default}
-    .btn svg{pointer-events:none}
-    .btn.rate{min-width:56px;font-weight:700}
     .btn.primary{background:linear-gradient(180deg,#111827,#1f2937);color:#fff;border-color:#0f1625;box-shadow:0 10px 18px rgba(17,24,39,.25)}
-    .btn:hover{transform:translateY(-1px)}
-    .btn:active{transform:translateY(0)}
-    .btn:disabled{opacity:.5;cursor:default}
-    
-    
-    .btn:disabled{opacity:.5;cursor:default}
-    
+    .btn.rate{min-width:56px}
     .time{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
     .range{width:100%;-webkit-appearance:none;background:linear-gradient(180deg,#e9edf6,#e1e6f2);height:8px;border-radius:999px;outline:none;border:1px solid var(--line)}
     .range::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#ffffff;border:1px solid #d7dce6;box-shadow:0 2px 6px rgba(17,24,39,.16)}
@@ -86,7 +73,6 @@
     footer{color:var(--muted);text-align:center;margin:22px 0 30px}
     .dock{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -8px 24px rgba(17,24,39,.08);padding:8px 12px;z-index:50}
     .dock [data-player]{max-width:var(--maxw);margin:0 auto}
-  
   </style>
 </head>
 <body>
@@ -134,14 +120,14 @@
           <audio preload="metadata"></audio>
           <input class="range" type="range" min="0" max="100" value="0" step="0.1" aria-label="进度" oninput="window.__pp.seek(this)" />
           <div class="controls">
-            <button class="btn" data-skip="-15" title="后退15秒" onclick="window.__pp.skip(this,-15)">
+            <button class="btn" title="后退15秒" onclick="window.__pp.skip(this,-15)">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 19l-7-7 7-7"/><path d="M20 19l-7-7 7-7"/></svg>
             </button>
             <button class="btn primary" data-toggle title="播放/暂停" onclick="window.__pp.playPause(this)">
               <svg class="ico-play" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
               <svg class="ico-pause" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
             </button>
-            <button class="btn" data-skip="30" title="快进30秒" onclick="window.__pp.skip(this,30)">
+            <button class="btn" title="快进30秒" onclick="window.__pp.skip(this,30)">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 5l7 7-7 7"/><path d="M4 5l7 7-7 7"/></svg>
             </button>
             <button class="btn rate" data-rate onclick="window.__pp.rate(this)">1x</button>
@@ -167,14 +153,14 @@
           <audio preload="metadata"></audio>
           <input class="range" type="range" min="0" max="100" value="0" step="0.1" aria-label="进度" oninput="window.__pp.seek(this)" />
           <div class="controls">
-            <button class="btn" data-skip="-15" title="后退15秒" onclick="window.__pp.skip(this,-15)">
+            <button class="btn" title="后退15秒" onclick="window.__pp.skip(this,-15)">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 19l-7-7 7-7"/><path d="M20 19l-7-7 7-7"/></svg>
             </button>
             <button class="btn primary" data-toggle title="播放/暂停" onclick="window.__pp.playPause(this)">
               <svg class="ico-play" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
               <svg class="ico-pause" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
             </button>
-            <button class="btn" data-skip="30" title="快进30秒" onclick="window.__pp.skip(this,30)">
+            <button class="btn" title="快进30秒" onclick="window.__pp.skip(this,30)">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 5l7 7-7 7"/><path d="M4 5l7 7-7 7"/></svg>
             </button>
             <button class="btn rate" data-rate onclick="window.__pp.rate(this)">1x</button>
@@ -201,46 +187,13 @@
 
     const S = { raw: [], filtered: [], page: 0, tag: '全部', q: '' };
 
-    const fmtDate = s => {
-      if(!s) return '';
-      const d = new Date(s);
-      if(Number.isNaN(d)) return s;
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    };
-    const fmtDur = sec => {
-      if(sec==null) return '';
-      const t = Math.max(0, Math.floor(sec));
-      const m = Math.floor(t/60), r = t%60;
-      const h = Math.floor(m/60); const mm = m%60;
-      return h>0? `${h}:${String(mm).padStart(2,'0')}:${String(r).padStart(2,'0')}` : `${mm}:${String(r).padStart(2,'0')}`;
-    };
+    const fmtDate = s => { if(!s) return ''; const d = new Date(s); if(Number.isNaN(d)) return s; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+    const fmtDur = sec => { if(sec==null) return ''; const t = Math.max(0, Math.floor(sec)); const m = Math.floor(t/60), r = t%60; const h = Math.floor(m/60); const mm = m%60; return h>0? `${h}:${String(mm).padStart(2,'0')}:${String(r).padStart(2,'0')}` : `${mm}:${String(r).padStart(2,'0')}`; };
 
-    function mimeFrom(url){
-      if(!url) return '';
-      const ext = url.split('.').pop().toLowerCase().split('?')[0];
-      if(ext==='m4a' || ext==='mp4' || ext==='aac') return 'audio/mp4';
-      if(ext==='mp3') return 'audio/mpeg';
-      if(ext==='wav') return 'audio/wav';
-      return '';
-    }
-    function wireSources(audio, ep){
-      // 支持 ep.sources 数组 或 ep.audio 字段；自动按扩展名设置 MIME
-      audio.innerHTML = '';
-      const srcs = Array.isArray(ep.sources) ? ep.sources : (ep.audio ? [{src: ep.audio, type: mimeFrom(ep.audio)}] : []);
-      srcs.forEach(s=>{
-        if(!s || !s.src) return;
-        const el = document.createElement('source');
-        el.src = s.src;
-        const t = s.type || mimeFrom(s.src);
-        if(t) el.type = t;
-        audio.appendChild(el);
-      });
-      // 为了 Safari 更稳，移除旧 src 属性，改用 <source>
-      audio.removeAttribute('src');
-      audio.load();
-    }
+    function mimeFrom(url){ if(!url) return ''; const ext = url.split('.').pop().toLowerCase().split('?')[0]; if(ext==='m4a'||ext==='mp4'||ext==='aac') return 'audio/mp4'; if(ext==='mp3') return 'audio/mpeg'; if(ext==='wav') return 'audio/wav'; return ''; }
+    function wireSources(audio, ep){ audio.innerHTML=''; const srcs = Array.isArray(ep.sources) ? ep.sources : (ep.audio ? [{src: ep.audio, type: mimeFrom(ep.audio)}] : []); srcs.forEach(s=>{ if(!s||!s.src) return; const e=document.createElement('source'); e.src=s.src; const t=s.type||mimeFrom(s.src); if(t) e.type=t; audio.appendChild(e); }); audio.removeAttribute('src'); audio.load(); }
 
-    // --- 全局播放器助手（inline 事件直连） ---
+    // --- 全局播放器助手 ---
     window.__pp = {
       initOne(root){
         const audio = root.querySelector('audio');
@@ -251,226 +204,81 @@
         const iconPlay = playBtn.querySelector('.ico-play');
         const iconPause = playBtn.querySelector('.ico-pause');
         const rateBtn = root.querySelector('[data-rate]');
+        const toTime = t=>{const s=Math.floor(t); const m=Math.floor(s/60), r=s%60; return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`};
 
-        function toTime(t){ const s=Math.floor(t); const m=Math.floor(s/60), r=s%60; return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`; }
-
-        audio.addEventListener('loadedmetadata', () => { dur.textContent = toTime(audio.duration||0); });
-        audio.addEventListener('timeupdate', () => {
-          if(!isFinite(audio.duration)) return;
-          const p = (audio.currentTime / audio.duration) * 100;
-          range.value = p || 0;
-          cur.textContent = toTime(audio.currentTime);
-        });
+        audio.addEventListener('loadedmetadata', ()=>{ dur.textContent = toTime(audio.duration||0); });
+        audio.addEventListener('timeupdate', ()=>{ if(!isFinite(audio.duration)) return; const p=(audio.currentTime/audio.duration)*100; range.value=p||0; cur.textContent=toTime(audio.currentTime); });
         audio.addEventListener('play', ()=>{ iconPlay.style.display='none'; iconPause.style.display='block'; });
         audio.addEventListener('pause',()=>{ iconPlay.style.display='block'; iconPause.style.display='none'; });
-        if(rateBtn){ rateBtn.textContent = (audio.playbackRate.toFixed(1).replace(/\.0$/, '')) + 'x'; }
+        if(rateBtn){ rateBtn.textContent=(audio.playbackRate.toFixed(1).replace(/\.0$/, ''))+'x'; }
       },
-      seek(input){
-        const root = input.closest('[data-player]');
-        const audio = root.querySelector('audio');
-        if(isFinite(audio.duration)) audio.currentTime = (input.value/100) * audio.duration;
-      },
-      playPause(btn){
-        const root = btn.closest('[data-player]');
-        const audio = root.querySelector('audio');
-        document.querySelectorAll('audio').forEach(a => { if(a!==audio) a.pause(); });
-        audio.paused ? audio.play() : audio.pause();
-      },
-      skip(btn, delta){
-        const root = btn.closest('[data-player]');
-        const audio = root.querySelector('audio');
-        audio.currentTime = Math.max(0, Math.min((audio.currentTime||0)+delta, audio.duration||Infinity));
-      },
-      rate(btn){
-        const root = btn.closest('[data-player]');
-        const audio = root.querySelector('audio');
-        const steps = [1, 1.2, 1.5];
-        const cur = parseFloat(audio.playbackRate.toFixed(1));
-        const i = Math.max(0, steps.indexOf(cur));
-        const next = steps[(i+1)%steps.length];
-        audio.playbackRate = next;
-        btn.textContent = (next.toString().replace(/\.0$/, '')) + 'x';
-      }
+      seek(input){ const root=input.closest('[data-player]'); const audio=root.querySelector('audio'); if(isFinite(audio.duration)) audio.currentTime=(input.value/100)*audio.duration; },
+      playPause(btn){ const root=btn.closest('[data-player]'); const audio=root.querySelector('audio'); document.querySelectorAll('audio').forEach(a=>{ if(a!==audio) a.pause(); }); audio.paused?audio.play():audio.pause(); },
+      skip(btn, d){ const root=btn.closest('[data-player]'); const audio=root.querySelector('audio'); audio.currentTime=Math.max(0, Math.min((audio.currentTime||0)+d, audio.duration||Infinity)); },
+      rate(btn){ const root=btn.closest('[data-player]'); const audio=root.querySelector('audio'); const steps=[1,1.2,1.5]; const cur=parseFloat(audio.playbackRate.toFixed(1)); const i=Math.max(0, steps.indexOf(cur)); const next=steps[(i+1)%steps.length]; audio.playbackRate=next; btn.textContent=(next.toString().replace(/\.0$/, ''))+'x'; }
     };
 
     function buildChips(){
-      const set = new Set();
-      (S.raw||[]).forEach(e => (e.tags||[]).forEach(t => set.add(t)));
+      const set = new Set(); (S.raw||[]).forEach(e => (e.tags||[]).forEach(t => set.add(t)));
       const ordered = ['全部', ...Array.from(set)];
-      // 渲染 chips
-      chips.innerHTML = ordered.map(name => `
-        <button class="chip${name===S.tag?' active':''}" data-tag="${name}">${name}</button>
-      `).join('');
-      // 事件委托：单选 + 高亮
-      chips.onclick = (ev) => {
-        const btn = ev.target.closest('.chip');
-        if(!btn) return;
-        const t = btn.dataset.tag;
-        if(!t || t === S.tag) return; // 未变更
-        S.tag = t;
-        chips.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.tag===S.tag));
-        apply();
-      };
+      chips.innerHTML = ordered.map(name => `<button class="chip${name===S.tag?' active':''}" data-tag="${name}">${name}</button>`).join('');
+      chips.onclick = (ev)=>{ const btn=ev.target.closest('.chip'); if(!btn) return; const t=btn.dataset.tag; if(!t||t===S.tag) return; S.tag=t; chips.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active', c.dataset.tag===S.tag)); apply(); };
     }
 
     function apply(){
       const qtext = S.q.trim().toLowerCase();
-      S.filtered = S.raw.filter(e => {
-        const okTag = (S.tag==='全部') || (e.tags||[]).includes(S.tag);
-        const inText = !qtext || [e.title, e.description, ...(e.tags||[])].join(' ').toLowerCase().includes(qtext);
-        return okTag && inText;
-      });
+      S.filtered = S.raw.filter(e => { const okTag=(S.tag==='全部')||(e.tags||[]).includes(S.tag); const inText=!qtext || [e.title,e.description,...(e.tags||[])].join(' ').toLowerCase().includes(qtext); return okTag && inText; });
       S.filtered.sort((a,b)=> new Date(b.date||0) - new Date(a.date||0));
-      S.page = 0;
-      render();
+      S.page = 0; render();
     }
 
     function render(){
-      // 在重绘前，尝试把正在播放的播放器移到 dock，避免被销毁
       preserveIfPlaying();
-
-      feature.innerHTML = '';
-      list.innerHTML = '';
-      const total = S.filtered.length;
-      if(total === 0){ count.textContent = '显示 0/0 期'; more.disabled = true; return; }
-
-      const first = S.filtered[0];
-      feature.appendChild(renderFeature(first));
-
-      const rest = S.filtered.slice(1);
-      S._rest = rest;
-      count.textContent = `显示 ${Math.min(S.page*PAGE_SIZE + Math.min(PAGE_SIZE, rest.length), rest.length)}/${rest.length} 期`;
-      more.disabled = rest.length === 0;
-      S.page = 0;
-      loadMore();
-
-      // 重绘后尝试把播放器放回对应卡片
+      feature.innerHTML=''; list.innerHTML='';
+      const total=S.filtered.length; if(total===0){ count.textContent='显示 0/0 期'; more.disabled=true; return; }
+      const first=S.filtered[0]; feature.appendChild(renderFeature(first));
+      const rest=S.filtered.slice(1); S._rest=rest;
+      count.textContent=`显示 ${Math.min(S.page*PAGE_SIZE + Math.min(PAGE_SIZE, rest.length), rest.length)}/${rest.length} 期`;
+      more.disabled=rest.length===0; S.page=0; loadMore();
       tryAttachBack();
-    }
-
-      const first = S.filtered[0];
-      feature.appendChild(renderFeature(first));
-
-      const rest = S.filtered.slice(1);
-      S._rest = rest;
-      count.textContent = `显示 ${Math.min(S.page*PAGE_SIZE + Math.min(PAGE_SIZE, rest.length), rest.length)}/${rest.length} 期`;
-      more.disabled = rest.length === 0;
-      S.page = 0;
-      loadMore();
     }
 
     function renderFeature(ep){
-      const t = document.getElementById('featureTpl');
-      const node = t.content.cloneNode(true);
-      const article = node.querySelector('article.feature');
-      const img = node.querySelector('.img');
-      const tag = node.querySelector('.tag');
-      const title = node.querySelector('.title');
-      const meta = node.querySelector('.meta');
-      const desc = node.querySelector('.desc');
-      const audio = node.querySelector('audio');
-      const player = node.querySelector('[data-player]');
-
-      if(article) article.dataset.id = ep.id || '';
-      img.src = ep.cover || '';
-      img.alt = ep.title || '';
-      if(ep.tags && ep.tags[0]){ tag.hidden = false; tag.textContent = ep.tags[0]; }
-      title.textContent = ep.title || '未命名节目';
-      const date = fmtDate(ep.date);
-      const dur = fmtDur(ep.duration);
-      meta.textContent = `${date?date:''}${date&&dur?' · ':''}${dur?dur:''}`;
-      desc.textContent = ep.description || '';
-
-      wireSources(audio, ep);
-      window.__pp.initOne(player);
-
-      return node;
+      const t=document.getElementById('featureTpl'); const node=t.content.cloneNode(true);
+      const article=node.querySelector('article.feature'); const img=node.querySelector('.img'); const tag=node.querySelector('.tag'); const title=node.querySelector('.title'); const meta=node.querySelector('.meta'); const desc=node.querySelector('.desc'); const audio=node.querySelector('audio'); const player=node.querySelector('[data-player]');
+      if(article) article.dataset.id=ep.id||''; img.src=ep.cover||''; img.alt=ep.title||''; if(ep.tags&&ep.tags[0]){ tag.hidden=false; tag.textContent=ep.tags[0]; }
+      title.textContent=ep.title||'未命名节目'; const date=fmtDate(ep.date); const dur=fmtDur(ep.duration); meta.textContent=`${date?date:''}${date&&dur?' · ':''}${dur?dur:''}`; desc.textContent=ep.description||'';
+      wireSources(audio, ep); window.__pp.initOne(player); return node;
     }
 
     function renderCard(ep){
-      const t = document.getElementById('cardTpl');
-      const node = t.content.cloneNode(true);
-      const article = node.querySelector('article.card');
-      const img = node.querySelector('.img');
-      const tag = node.querySelector('.tag');
-      const title = node.querySelector('.title');
-      const meta = node.querySelector('.meta');
-      const desc = node.querySelector('.desc');
-      const audio = node.querySelector('audio');
-      const player = node.querySelector('[data-player]');
-      if(article) article.dataset.id = ep.id || '';
-      img.src = ep.cover || '';
-      img.alt = ep.title || '';
-      if(ep.tags && ep.tags[0]){ tag.hidden = false; tag.textContent = ep.tags[0]; }
-      title.textContent = ep.title || '未命名节目';
-      const date = fmtDate(ep.date);
-      const dur = fmtDur(ep.duration);
-      meta.textContent = `${date?date:''}${date&&dur?' · ':''}${dur?dur:''}`;
-      desc.textContent = ep.description || '';
-
-      wireSources(audio, ep);
-      window.__pp.initOne(player);
-
-      return node;
+      const t=document.getElementById('cardTpl'); const node=t.content.cloneNode(true);
+      const article=node.querySelector('article.card'); const img=node.querySelector('.img'); const tag=node.querySelector('.tag'); const title=node.querySelector('.title'); const meta=node.querySelector('.meta'); const desc=node.querySelector('.desc'); const audio=node.querySelector('audio'); const player=node.querySelector('[data-player]');
+      if(article) article.dataset.id=ep.id||''; img.src=ep.cover||''; img.alt=ep.title||''; if(ep.tags&&ep.tags[0]){ tag.hidden=false; tag.textContent=ep.tags[0]; }
+      title.textContent=ep.title||'未命名节目'; const date=fmtDate(ep.date); const dur=fmtDur(ep.duration); meta.textContent=`${date?date:''}${date&&dur?' · ':''}${dur?dur:''}`; desc.textContent=ep.description||'';
+      wireSources(audio, ep); window.__pp.initOne(player); return node;
     }
 
     function loadMore(){
-      const start = S.page * PAGE_SIZE;
-      const end = Math.min(start + PAGE_SIZE, S._rest.length);
-      const items = S._rest.slice(start, end);
-      items.forEach(ep => list.appendChild(renderCard(ep)));
-      S.page++;
-      count.textContent = `显示 ${Math.min(end, S._rest.length)}/${S._rest.length} 期`;
-      if(end >= S._rest.length){ more.disabled = true; more.textContent = '没有更多了'; }
-      else { more.disabled = false; more.textContent = '加载更多'; }
+      const start=S.page*PAGE_SIZE; const end=Math.min(start+PAGE_SIZE, S._rest.length);
+      const items=S._rest.slice(start,end); items.forEach(ep=>list.appendChild(renderCard(ep))); S.page++;
+      count.textContent=`显示 ${Math.min(end, S._rest.length)}/${S._rest.length} 期`;
+      if(end>=S._rest.length){ more.disabled=true; more.textContent='没有更多了'; } else { more.disabled=false; more.textContent='加载更多'; }
       tryAttachBack();
-    }/${S._rest.length} 期`;
-      if(end >= S._rest.length){ more.disabled = true; more.textContent = '没有更多了'; }
-      else { more.disabled = false; more.textContent = '加载更多'; }
     }
 
     async function init(){
-      try{
-        const res = await fetch(DATA, {cache:'no-store'});
-        const data = await res.json();
-        const eps = Array.isArray(data.episodes) ? data.episodes : [];
-        S.raw = eps;
-        buildChips();
-        apply();
-      }catch(e){ console.error(e); }
-    });
-        const data = await res.json();
-        const eps = Array.isArray(data.episodes) ? data.episodes : [];
-        S.raw = eps;
-        buildChips();
-        apply();
-      }catch(e){
-        console.error(e);
-      }
+      try{ const res=await fetch(DATA,{cache:'no-store'}); const data=await res.json(); const eps=Array.isArray(data.episodes)?data.episodes:[]; S.raw=eps; buildChips(); apply(); }
+      catch(e){ console.error(e); }
     }
 
     more.addEventListener('click', loadMore);
-    q.addEventListener('input', e => { S.q = e.target.value; apply(); });
+    q.addEventListener('input', e => { S.q=e.target.value; apply(); });
 
-    // 播放器保护：把当前播放移到 dock（避免在重绘时被销毁），并在重绘后尝试放回
-    const dock = document.getElementById('dock');
-    function preserveIfPlaying(){
-      const playing = Array.from(document.querySelectorAll('audio')).find(a => !a.paused && !a.ended && a.readyState>0);
-      if(!playing) return;
-      const player = playing.closest('[data-player]');
-      const article = playing.closest('article');
-      S.preservedId = article?.dataset.id || null;
-      if(player && dock){ dock.innerHTML=''; dock.appendChild(player); dock.hidden=false; }
-    }
-    function tryAttachBack(){
-      if(!S.preservedId) return;
-      const host = document.querySelector(`article[data-id="${S.preservedId}"] [data-player]`);
-      if(host && dock.firstElementChild){
-        host.replaceWith(dock.firstElementChild);
-        dock.hidden = true;
-        S.preservedId = null;
-      }
-    }
+    // 播放保护：把当前播放移到 dock，重绘后尝试放回
+    const dock=document.getElementById('dock');
+    function preserveIfPlaying(){ const playing=Array.from(document.querySelectorAll('audio')).find(a=>!a.paused&&!a.ended&&a.readyState>0); if(!playing) return; const player=playing.closest('[data-player]'); const article=playing.closest('article'); S.preservedId=article?.dataset.id||null; if(player&&dock){ dock.innerHTML=''; dock.appendChild(player); dock.hidden=false; } }
+    function tryAttachBack(){ if(!S.preservedId) return; const host=document.querySelector(`article[data-id="${S.preservedId}"] [data-player]`); if(host&&dock.firstElementChild){ host.replaceWith(dock.firstElementChild); dock.hidden=true; S.preservedId=null; } }
 
     init();
   })();
