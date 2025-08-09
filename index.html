@@ -114,11 +114,11 @@
         <p class="desc"></p>
         <div class="player" data-player>
           <audio preload="metadata"></audio>
-          <input class="range" type="range" min="0" max="100" value="0" step="0.1" aria-label="进度" />
+          <input class="range" type="range" min="0" max="100" value="0" step="0.1" aria-label="进度" oninput="window.__pp.seek(this)" />
           <div class="controls">
-            <button class="btn" data-skip="-15" title="后退15秒">⏮︎</button>
-            <button class="btn round" data-toggle title="播放/暂停">⏯︎</button>
-            <button class="btn" data-skip="30" title="快进30秒">⏭︎</button>
+            <button class="btn" data-skip="-15" title="后退15秒" onclick="window.__pp.skip(this,-15)">⏮︎</button>
+            <button class="btn round" data-toggle title="播放/暂停" onclick="window.__pp.playPause(this)">⏯︎</button>
+            <button class="btn" data-skip="30" title="快进30秒" onclick="window.__pp.skip(this,30)">⏭︎</button>
           </div>
           <div class="time"><span data-cur>00:00</span><span data-dur>--:--</span></div>
         </div>
@@ -139,11 +139,11 @@
         <p class="desc"></p>
         <div class="player" data-player>
           <audio preload="metadata"></audio>
-          <input class="range" type="range" min="0" max="100" value="0" step="0.1" aria-label="进度" />
+          <input class="range" type="range" min="0" max="100" value="0" step="0.1" aria-label="进度" oninput="window.__pp.seek(this)" />
           <div class="controls">
-            <button class="btn" data-skip="-15" title="后退15秒">⏮︎</button>
-            <button class="btn round" data-toggle title="播放/暂停">⏯︎</button>
-            <button class="btn" data-skip="30" title="快进30秒">⏭︎</button>
+            <button class="btn" data-skip="-15" title="后退15秒" onclick="window.__pp.skip(this,-15)">⏮︎</button>
+            <button class="btn round" data-toggle title="播放/暂停" onclick="window.__pp.playPause(this)">⏯︎</button>
+            <button class="btn" data-skip="30" title="快进30秒" onclick="window.__pp.skip(this,30)">⏭︎</button>
           </div>
           <div class="time"><span data-cur>00:00</span><span data-dur>--:--</span></div>
         </div>
@@ -206,46 +206,42 @@
       audio.load();
     }
 
-    function mountPlayer(root){
-      const audio = root.querySelector('audio');
-      const range = root.querySelector('.range');
-      const cur = root.querySelector('[data-cur]');
-      const dur = root.querySelector('[data-dur]');
-      const toggle = root.querySelector('[data-toggle]');
-      const skips = root.querySelectorAll('[data-skip]');
+    // --- 全局播放器助手（inline 事件直连） ---
+    window.__pp = {
+      initOne(root){
+        const audio = root.querySelector('audio');
+        const range = root.querySelector('.range');
+        const cur = root.querySelector('[data-cur]');
+        const dur = root.querySelector('[data-dur]');
 
-      function toTime(t){
-        const s = Math.floor(t);
-        const m = Math.floor(s/60); const r = s%60; return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`;
-      }
+        function toTime(t){ const s=Math.floor(t); const m=Math.floor(s/60), r=s%60; return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`; }
 
-      audio.addEventListener('loadedmetadata', () => {
-        dur.textContent = toTime(audio.duration || 0);
-      });
-
-      audio.addEventListener('timeupdate', () => {
-        if(!isFinite(audio.duration)) return;
-        const p = (audio.currentTime / audio.duration) * 100;
-        range.value = p || 0;
-        cur.textContent = toTime(audio.currentTime);
-      });
-
-      range.addEventListener('input', () => {
-        if(isFinite(audio.duration)){
-          audio.currentTime = (range.value / 100) * audio.duration;
-        }
-      });
-
-      toggle.addEventListener('click', () => {
+        audio.addEventListener('loadedmetadata', () => { dur.textContent = toTime(audio.duration||0); });
+        audio.addEventListener('timeupdate', () => {
+          if(!isFinite(audio.duration)) return;
+          const p = (audio.currentTime / audio.duration) * 100;
+          range.value = p || 0;
+          cur.textContent = toTime(audio.currentTime);
+        });
+      },
+      seek(input){
+        const root = input.closest('[data-player]');
+        const audio = root.querySelector('audio');
+        if(isFinite(audio.duration)) audio.currentTime = (input.value/100) * audio.duration;
+      },
+      playPause(btn){
+        const root = btn.closest('[data-player]');
+        const audio = root.querySelector('audio');
+        // 暂停其它
         document.querySelectorAll('audio').forEach(a => { if(a!==audio) a.pause(); });
         audio.paused ? audio.play() : audio.pause();
-      });
-
-      skips.forEach(b => b.addEventListener('click', () => {
-        const d = Number(b.dataset.skip||0);
-        audio.currentTime = Math.max(0, Math.min((audio.currentTime||0)+d, audio.duration||Infinity));
-      }));
-    }
+      },
+      skip(btn, delta){
+        const root = btn.closest('[data-player]');
+        const audio = root.querySelector('audio');
+        audio.currentTime = Math.max(0, Math.min((audio.currentTime||0)+delta, audio.duration||Infinity));
+      }
+    };
 
     function buildChips(){
       const set = new Set(['全部']);
@@ -298,6 +294,7 @@
       const meta = node.querySelector('.meta');
       const desc = node.querySelector('.desc');
       const audio = node.querySelector('audio');
+      const player = node.querySelector('[data-player]');
 
       img.src = ep.cover || '';
       img.alt = ep.title || '';
@@ -309,8 +306,8 @@
       desc.textContent = ep.description || '';
 
       wireSources(audio, ep);
+      window.__pp.initOne(player);
 
-      setTimeout(()=> mountPlayer(node.querySelector('[data-player]')));
       return node;
     }
 
@@ -323,6 +320,7 @@
       const meta = node.querySelector('.meta');
       const desc = node.querySelector('.desc');
       const audio = node.querySelector('audio');
+      const player = node.querySelector('[data-player]');
       img.src = ep.cover || '';
       img.alt = ep.title || '';
       if(ep.tags && ep.tags[0]){ tag.hidden = false; tag.textContent = ep.tags[0]; }
@@ -333,8 +331,8 @@
       desc.textContent = ep.description || '';
 
       wireSources(audio, ep);
+      window.__pp.initOne(player);
 
-      setTimeout(()=> mountPlayer(node.querySelector('[data-player]')));
       return node;
     }
 
