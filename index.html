@@ -181,6 +181,31 @@
       return h>0? `${h}:${String(mm).padStart(2,'0')}:${String(r).padStart(2,'0')}` : `${mm}:${String(r).padStart(2,'0')}`;
     };
 
+    function mimeFrom(url){
+      if(!url) return '';
+      const ext = url.split('.').pop().toLowerCase().split('?')[0];
+      if(ext==='m4a' || ext==='mp4' || ext==='aac') return 'audio/mp4';
+      if(ext==='mp3') return 'audio/mpeg';
+      if(ext==='wav') return 'audio/wav';
+      return '';
+    }
+    function wireSources(audio, ep){
+      // 支持 ep.sources 数组 或 ep.audio 字段；自动按扩展名设置 MIME
+      audio.innerHTML = '';
+      const srcs = Array.isArray(ep.sources) ? ep.sources : (ep.audio ? [{src: ep.audio, type: mimeFrom(ep.audio)}] : []);
+      srcs.forEach(s=>{
+        if(!s || !s.src) return;
+        const el = document.createElement('source');
+        el.src = s.src;
+        const t = s.type || mimeFrom(s.src);
+        if(t) el.type = t;
+        audio.appendChild(el);
+      });
+      // 为了 Safari 更稳，移除旧 src 属性，改用 <source>
+      audio.removeAttribute('src');
+      audio.load();
+    }
+
     function mountPlayer(root){
       const audio = root.querySelector('audio');
       const range = root.querySelector('.range');
@@ -212,7 +237,6 @@
       });
 
       toggle.addEventListener('click', () => {
-        // 暂停其它播放
         document.querySelectorAll('audio').forEach(a => { if(a!==audio) a.pause(); });
         audio.paused ? audio.play() : audio.pause();
       });
@@ -237,21 +261,18 @@
     }
 
     function apply(){
-      // 过滤
       const qtext = S.q.trim().toLowerCase();
       S.filtered = S.raw.filter(e => {
         const okTag = (S.tag==='全部') || (e.tags||[]).includes(S.tag);
         const inText = !qtext || [e.title, e.description, ...(e.tags||[])].join(' ').toLowerCase().includes(qtext);
         return okTag && inText;
       });
-      // 按时间降序
       S.filtered.sort((a,b)=> new Date(b.date||0) - new Date(a.date||0));
       S.page = 0;
       render();
     }
 
     function render(){
-      // 本期（第一条）
       feature.innerHTML = '';
       list.innerHTML = '';
       const total = S.filtered.length;
@@ -260,9 +281,8 @@
       const first = S.filtered[0];
       feature.appendChild(renderFeature(first));
 
-      // 往期分页
       const rest = S.filtered.slice(1);
-      S._rest = rest; // 保存供“加载更多”使用
+      S._rest = rest;
       count.textContent = `显示 ${Math.min(S.page*PAGE_SIZE + Math.min(PAGE_SIZE, rest.length), rest.length)}/${rest.length} 期`;
       more.disabled = rest.length === 0;
       S.page = 0;
@@ -287,7 +307,8 @@
       const dur = fmtDur(ep.duration);
       meta.textContent = `${date?date:''}${date&&dur?' · ':''}${dur?dur:''}`;
       desc.textContent = ep.description || '';
-      audio.src = ep.audio || '';
+
+      wireSources(audio, ep);
 
       setTimeout(()=> mountPlayer(node.querySelector('[data-player]')));
       return node;
@@ -310,7 +331,9 @@
       const dur = fmtDur(ep.duration);
       meta.textContent = `${date?date:''}${date&&dur?' · ':''}${dur?dur:''}`;
       desc.textContent = ep.description || '';
-      audio.src = ep.audio || '';
+
+      wireSources(audio, ep);
+
       setTimeout(()=> mountPlayer(node.querySelector('[data-player]')));
       return node;
     }
