@@ -248,6 +248,22 @@
         audio.addEventListener('pause',()=>{ iconPlay.style.display='block'; iconPause.style.display='none'; setLoading(false); root.classList.remove('intent'); const dk=document.getElementById('dock'); if(dk && dk.contains(audio) && typeof window.__dockOps?.hideIfIdle==='function'){ window.__dockOps.hideIfIdle(); } });
         audio.addEventListener('ended',()=>{ setLoading(false); root.classList.remove('intent'); const dk=document.getElementById('dock'); if(dk && dk.contains(audio) && typeof window.__dockOps?.hideIfIdle==='function'){ window.__dockOps.hideIfIdle(); } });
         if(rateBtn){ rateBtn.textContent=(audio.playbackRate.toFixed(1).replace(/\.0$/, ''))+'x'; }
+
+        // ---- 卡顿自愈（弱网 / 部分 WebView 兼容）----
+        let stallTimer = null;
+        function kick(){
+          try{
+            if (audio.readyState < 3) audio.load();
+            if (isFinite(audio.duration) && (audio.currentTime < (audio.duration - 0.05))) {
+              audio.currentTime = Math.max(0, audio.currentTime + 0.01);
+            }
+            const p = audio.play(); if(p && p.catch) p.catch(()=>{});
+          }catch(e){}
+        }
+        audio.addEventListener('waiting', ()=>{ clearTimeout(stallTimer); stallTimer = setTimeout(kick, 800); });
+        audio.addEventListener('stalled', ()=>{ clearTimeout(stallTimer); stallTimer = setTimeout(kick, 800); });
+        audio.addEventListener('playing', ()=>{ clearTimeout(stallTimer); });
+        audio.addEventListener('error', ()=>{ clearTimeout(stallTimer); /* 可选：console.warn('audio error', audio.error?.code); */ });
       },
       seek(input){ const root=input.closest('[data-player]'); const audio=root.querySelector('audio'); if(isFinite(audio.duration)) audio.currentTime=(input.value/100)*audio.duration; },
       playPause(btn){

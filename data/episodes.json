@@ -9,7 +9,10 @@
       "status": "published",
       "description": "请求与响应是API调用中最基础也最重要的机制。清晰理解其定义、内容、交互过程以及状态码的意义，对于确保系统的高效运行、提升用户体验和保障业务可靠性至关重要。标准化的流程和反馈机制是实现系统间顺畅、可靠通信的关键。",
       "cover": "/episodes/02/cover.webp",
-      "audio": "/episodes/02/audio.m4a",
+      "sources": [
+        { "src": "/episodes/02/audio.m4a", "type": "audio/mp4" },
+        { "src": "/episodes/02/audio.mp3", "type": "audio/mpeg" }
+      ],
       "tags": ["基础概念"]
     },
     {
@@ -20,8 +23,11 @@
       "status": "published",
       "description": "网络协议是实现计算机间有效通信的基石，它通过提供一套共同遵守的规则，确保了不同系统之间的互联互通。对于软件产品而言，遵循主流标准协议不仅能极大降低集成难度，提升产品的开放性和兼容性，更成为赢得客户信任和加速业务落地的核心卖点。理解并强调协议的重要性，是销售和产品团队的必备知识。",
       "cover": "/episodes/01/cover.webp",
-      "audio": "/episodes/01/audio.m4a",
-      "tags": ["基础概念","网络架构"]
+      "sources": [
+        { "src": "/episodes/01/audio.m4a", "type": "audio/mp4" },
+        { "src": "/episodes/01/audio.mp3", "type": "audio/mpeg" }
+      ],
+      "tags": ["基础概念", "网络架构"]
     }
   ]
 }
