@@ -204,7 +204,9 @@
     el('#year').textContent = new Date().getFullYear();
 
     const S = { raw: [], filtered: [], page: 0, tag: '全部', q: '', map: new Map(), details: new Map() };
-    const PREVIEW = new URLSearchParams(location.search).has('preview');
+    const QP = new URLSearchParams(location.search);
+    const PREVIEW = QP.has('preview');
+    const PREFER = (QP.get('prefer') || 'mp3').toLowerCase(); // 默认优先 mp3，可用 ?prefer=m4a 覆盖
 
     const fmtDate = s => { if(!s) return ''; const d = new Date(s); if(Number.isNaN(d)) return s; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
     const fmtDur = sec => { if(sec==null) return ''; const t = Math.max(0, Math.floor(sec)); const m = Math.floor(t/60), r = t%60; const h = Math.floor(m/60); const mm = m%60; return h>0? `${h}:${String(mm).padStart(2,'0')}:${String(r).padStart(2,'0')}` : `${mm}:${String(r).padStart(2,'0')}`; };
@@ -213,7 +215,19 @@
 
     function wireSources(audio, ep, eager=false){
       audio.innerHTML='';
-      const srcs = Array.isArray(ep.sources) ? ep.sources : (ep.audio ? [{src: ep.audio, type: mimeFrom(ep.audio)}] : []);
+      let srcs = Array.isArray(ep.sources) ? ep.sources : (ep.audio ? [{src: ep.audio, type: mimeFrom(ep.audio)}] : []);
+      // 优先顺序：默认 mp3 > m4a；可用 ?prefer=m4a 覆盖
+      const score = (s)=>{
+        const url = s?.src || '';
+        const t = (s?.type || mimeFrom(url) || '').toLowerCase();
+        const isMp3 = /audio\/mpeg/.test(t) || /\.mp3(\?|$)/i.test(url);
+        const isM4a = /audio\/mp4/.test(t)  || /\.(m4a|mp4)(\?|$)/i.test(url);
+        if(PREFER==='m4a') return isM4a?0:(isMp3?1:2);
+        // 默认 mp3 优先
+        return isMp3?0:(isM4a?1:2);
+      };
+      srcs = srcs.filter(Boolean).sort((a,b)=> score(a)-score(b));
+
       srcs.forEach(s=>{ if(!s||!s.src) return; const e=document.createElement('source'); e.src=s.src; const t=s.type||mimeFrom(s.src); if(t) e.type=t; audio.appendChild(e); });
       audio.setAttribute('playsinline','');
       audio.removeAttribute('src');
