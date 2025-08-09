@@ -272,23 +272,22 @@
 
     function buildChips(){
       const set = new Set();
-      S.raw.forEach(e => (e.tags||[]).forEach(t => set.add(t)));
+      (S.raw||[]).forEach(e => (e.tags||[]).forEach(t => set.add(t)));
       const ordered = ['全部', ...Array.from(set)];
-      chips.innerHTML = ordered.map(name => `<button class="chip${name===S.tag?' active':''}" data-tag="${name}">${name}</button>`).join('');
-      // 事件委托，单选高亮
-      chips.onclick = (ev)=>{
+      // 渲染 chips
+      chips.innerHTML = ordered.map(name => `
+        <button class="chip${name===S.tag?' active':''}" data-tag="${name}">${name}</button>
+      `).join('');
+      // 事件委托：单选 + 高亮
+      chips.onclick = (ev) => {
         const btn = ev.target.closest('.chip');
         if(!btn) return;
         const t = btn.dataset.tag;
-        if(!t) return;
+        if(!t || t === S.tag) return; // 未变更
         S.tag = t;
-        // 更新选中态
         chips.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.tag===S.tag));
         apply();
       };
-    });
-        chips.appendChild(btn);
-      });
     }
 
     function apply(){
