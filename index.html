@@ -204,6 +204,7 @@
     el('#year').textContent = new Date().getFullYear();
 
     const S = { raw: [], filtered: [], page: 0, tag: '全部', q: '', map: new Map(), details: new Map() };
+    const PREVIEW = new URLSearchParams(location.search).has('preview');
 
     const fmtDate = s => { if(!s) return ''; const d = new Date(s); if(Number.isNaN(d)) return s; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
     const fmtDur = sec => { if(sec==null) return ''; const t = Math.max(0, Math.floor(sec)); const m = Math.floor(t/60), r = t%60; const h = Math.floor(m/60); const mm = m%60; return h>0? `${h}:${String(mm).padStart(2,'0')}:${String(r).padStart(2,'0')}` : `${mm}:${String(r).padStart(2,'0')}`; };
@@ -289,9 +290,35 @@
 
     function apply(){
       const qtext = S.q.trim().toLowerCase();
-      S.filtered = S.raw.filter(e => { const okTag=(S.tag==='全部')||(e.tags||[]).includes(S.tag); const inText=!qtext || [e.title,e.description||'',...(e.tags||[])].join(' ').toLowerCase().includes(qtext); return okTag && inText; });
-      S.filtered.sort((a,b)=> new Date(b.date||0) - new Date(a.date||0));
-      S.page = 0; render();
+      const now = Date.now();
+
+      const isVisible = (e)=>{
+        if (PREVIEW) return true; // 预览模式显示全部
+        if (e == null) return false;
+        if (e.published === false || e.visible === false) return false;
+        if (e.status === 'draft') return false;
+        const pub = new Date(e.publishAt || e.date || 0).getTime();
+        if (e.publishAt && isFinite(pub) && now < pub) return false;
+        const exp = e.expireAt ? new Date(e.expireAt).getTime() : Infinity;
+        if (e.expireAt && isFinite(exp) && now >= exp) return false;
+        return true;
+      };
+
+      S.filtered = S.raw.filter(e => {
+        if (!isVisible(e)) return false;
+        const okTag=(S.tag==='全部')||(e.tags||[]).includes(S.tag);
+        if (!okTag) return false;
+        const inText=!qtext || [e.title,e.description||'',...(e.tags||[])].join(' ').toLowerCase().includes(qtext);
+        return inText;
+      });
+
+      // 置顶逻辑：featured 或者在 pinnedUntil 之前
+      const pin = (e)=> (e?.featured===true) || (e?.pinnedUntil && (now < new Date(e.pinnedUntil).getTime())) ? 1 : 0;
+      const pubTime = (e)=> new Date(e.publishAt || e.date || 0).getTime();
+
+      S.filtered.sort((a,b)=> pin(b)-pin(a) || pubTime(b)-pubTime(a));
+      S.page = 0;
+      render();
     }
 
     function render(){
@@ -346,7 +373,7 @@
       if(ep.description){ desc.textContent=ep.description; } else { desc.innerHTML = '<div class="skeleton sk-line" style="width:88%"></div><div class="skeleton sk-line" style="width:92%"></div>'; }
       wireSources(audio, ep, false); window.__pp.initOne(player);
       // 进入视口再取详情
-      node._hydrate = ()=> ensureDetail(ep).then(()=>{
+      article._hydrate = ()=> ensureDetail(ep).then(()=>{
         if(ep.description) desc.textContent = ep.description;
         wireSources(audio, ep, false);
       });
