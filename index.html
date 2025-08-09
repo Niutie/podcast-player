@@ -7,6 +7,7 @@
   <meta name="description" content="企业培训播客：搜索、分类、当期内容、自定义音频播放器、往期回顾。" />
   <link rel="icon" href="/favicon.ico" />
   <link rel="preload" href="/data/episodes.json" as="fetch">
+  <link rel="preconnect" href="/" crossorigin>
   <style>
     :root{ --bg:#f5f6f8;--surface:#ffffff;--ink:#0b1220;--muted:#6b7280;--line:#e6e8ee;--brand:#111827;--pill:#eef2f7;--pill-active:#111827;--pill-active-ink:#ffffff;--badge:#111827;--accent:#111827; --radius-xl:24px;--radius-lg:16px;--radius-md:12px;--shadow:0 4px 16px rgba(17,24,39,.08); --maxw:960px }
     *{box-sizing:border-box}
@@ -62,6 +63,13 @@
     .btn:active{transform:translateY(0)}
     .btn:disabled{opacity:.5;cursor:default}
     .btn.primary{background:linear-gradient(180deg,#111827,#1f2937);color:#fff;border-color:#0f1625;box-shadow:0 10px 18px rgba(17,24,39,.25)}
+    /* 加载中样式 */
+    .btn.loading{pointer-events:none;opacity:.9}
+    .btn.loading .ico-play,.btn.loading .ico-pause{display:none!important}
+    .btn .spinner{display:none}
+    .btn.loading .spinner{display:inline-block}
+    .spinner{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;animation:spin .9s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
     .btn.rate{min-width:56px}
     .time{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
     .range{width:100%;-webkit-appearance:none;background:linear-gradient(180deg,#e9edf6,#e1e6f2);height:8px;border-radius:999px;outline:none;border:1px solid var(--line)}
@@ -127,6 +135,7 @@
             <button class="btn primary" data-toggle title="播放/暂停" onclick="window.__pp.playPause(this)">
               <svg class="ico-play" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
               <svg class="ico-pause" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+              <span class="spinner" aria-hidden="true"></span>
             </button>
             <button class="btn" title="快进30秒" onclick="window.__pp.skip(this,30)">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 5l7 7-7 7"/><path d="M4 5l7 7-7 7"/></svg>
@@ -160,6 +169,7 @@
             <button class="btn primary" data-toggle title="播放/暂停" onclick="window.__pp.playPause(this)">
               <svg class="ico-play" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
               <svg class="ico-pause" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+              <span class="spinner" aria-hidden="true"></span>
             </button>
             <button class="btn" title="快进30秒" onclick="window.__pp.skip(this,30)">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 5l7 7-7 7"/><path d="M4 5l7 7-7 7"/></svg>
@@ -207,6 +217,13 @@
         const rateBtn = root.querySelector('[data-rate]');
         const toTime = t=>{const s=Math.floor(t); const m=Math.floor(s/60), r=s%60; return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`};
 
+        const setLoading = (on)=>{ playBtn.classList.toggle('loading', !!on); };
+        audio.addEventListener('loadstart', ()=> setLoading(true));
+        audio.addEventListener('waiting',   ()=> setLoading(true));
+        audio.addEventListener('stalled',   ()=> setLoading(true));
+        audio.addEventListener('canplay',   ()=> setLoading(false));
+        audio.addEventListener('playing',   ()=> setLoading(false));
+
         audio.addEventListener('loadedmetadata', ()=>{ dur.textContent = toTime(audio.duration||0); });
         audio.addEventListener('timeupdate', ()=>{ if(!isFinite(audio.duration)) return; const p=(audio.currentTime/audio.duration)*100; range.value=p||0; cur.textContent=toTime(audio.currentTime); });
         audio.addEventListener('play', ()=>{ iconPlay.style.display='none'; iconPause.style.display='block'; });
@@ -214,7 +231,7 @@
         if(rateBtn){ rateBtn.textContent=(audio.playbackRate.toFixed(1).replace(/\.0$/, ''))+'x'; }
       },
       seek(input){ const root=input.closest('[data-player]'); const audio=root.querySelector('audio'); if(isFinite(audio.duration)) audio.currentTime=(input.value/100)*audio.duration; },
-      playPause(btn){ const root=btn.closest('[data-player]'); const audio=root.querySelector('audio'); if(audio.readyState===0){ try{ audio.load(); }catch(e){} } document.querySelectorAll('audio').forEach(a=>{ if(a!==audio) a.pause(); }); audio.paused?audio.play():audio.pause(); },
+      playPause(btn){ const root=btn.closest('[data-player]'); const audio=root.querySelector('audio'); const setLoading=(on)=> btn.classList.toggle('loading', !!on); if(audio.readyState<3){ try{ setLoading(true); audio.load(); }catch(e){} } document.querySelectorAll('audio').forEach(a=>{ if(a!==audio) a.pause(); }); const p=audio.paused?audio.play():audio.pause(); if(p&&p.catch){ p.catch(()=> setLoading(false)); } },
       skip(btn, d){ const root=btn.closest('[data-player]'); const audio=root.querySelector('audio'); audio.currentTime=Math.max(0, Math.min((audio.currentTime||0)+d, audio.duration||Infinity)); },
       rate(btn){ const root=btn.closest('[data-player]'); const audio=root.querySelector('audio'); const steps=[1,1.2,1.5]; const cur=parseFloat(audio.playbackRate.toFixed(1)); const i=Math.max(0, steps.indexOf(cur)); const next=steps[(i+1)%steps.length]; audio.playbackRate=next; btn.textContent=(next.toString().replace(/\.0$/, ''))+'x'; }
     };
@@ -246,12 +263,13 @@
 
     function renderFeature(ep){
       const t=document.getElementById('featureTpl'); const node=t.content.cloneNode(true);
-      const article=node.querySelector('article.feature'); const img=node.querySelector('.img'); const tag=node.querySelector('.tag'); const title=node.querySelector('.title'); const meta=node.querySelector('.meta'); const desc=node.querySelector('.desc'); const audio = node.querySelector('audio');
-      const player = node.querySelector('[data-player]');
-      audio.setAttribute('preload','none');
+      const article=node.querySelector('article.feature'); const img=node.querySelector('.img'); const tag=node.querySelector('.tag'); const title=node.querySelector('.title'); const meta=node.querySelector('.meta'); const desc=node.querySelector('.desc'); const audio=node.querySelector('audio'); const player=node.querySelector('[data-player]');
       if(article) article.dataset.id=ep.id||''; img.src=ep.cover||''; img.alt=ep.title||''; if(ep.tags&&ep.tags[0]){ tag.hidden=false; tag.textContent=ep.tags[0]; }
       title.textContent=ep.title||'未命名节目'; const date=fmtDate(ep.date); const dur=fmtDur(ep.duration); meta.textContent=`${date?date:''}${date&&dur?' · ':''}${dur?dur:''}`; desc.textContent=ep.description||'';
-      wireSources(audio, ep); window.__pp.initOne(player); return node;
+      wireSources(audio, ep);
+      // 首屏节目：允许浏览器提前拉取一点数据
+      audio.setAttribute('preload','auto');
+      audio.load(); window.__pp.initOne(player); return node;
     }
 
     function renderCard(ep){
