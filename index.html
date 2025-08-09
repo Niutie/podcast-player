@@ -6,6 +6,8 @@
   <title>派拉API网关产品部门培训</title>
   <meta name="description" content="企业培训播客：搜索、分类、当期内容、自定义音频播放器、往期回顾。" />
   <link rel="icon" href="/favicon.ico" />
+  <!-- 优先拉取索引；若没有 index.json，会自动回退到 episodes.json -->
+  <link rel="preload" href="/data/index.json" as="fetch">
   <link rel="preload" href="/data/episodes.json" as="fetch">
   <link rel="preconnect" href="/" crossorigin>
   <style>
@@ -46,6 +48,9 @@
     .title{margin:0 0 8px;font-size:18px;line-height:1.35}
     .meta{display:flex;gap:14px;align-items:center;color:var(--muted);font-size:14px;margin-bottom:10px}
     .desc{margin:0 0 12px;color:#374151;line-height:1.6}
+    .skeleton{background:linear-gradient(90deg,#f1f3f7,#e8ecf5,#f1f3f7);background-size:200% 100%;animation:sk 1.2s ease-in-out infinite;border-radius:8px}
+    .sk-line{height:12px;margin:6px 0}
+    @keyframes sk{0%{background-position:0 0}100%{background-position:-200% 0}}
 
     /* 小卡片（往期） */
     .list{display:grid;grid-template-columns:1fr;gap:12px}
@@ -116,7 +121,7 @@
   <footer>© <span id="year"></span> API网关培训播客</footer>
 
   <template id="cardTpl">
-    <article class="card">
+    <article class="card" data-id="">
       <div class="cover">
         <img class="img" alt="" loading="lazy" decoding="async" />
         <span class="tag" hidden></span>
@@ -126,7 +131,7 @@
         <div class="meta"></div>
         <p class="desc"></p>
         <div class="player" data-player>
-          <audio preload="metadata"></audio>
+          <audio preload="none"></audio>
           <input class="range" type="range" min="0" max="100" value="0" step="0.1" aria-label="进度" oninput="window.__pp.seek(this)" />
           <div class="controls">
             <button class="btn" title="后退15秒" onclick="window.__pp.skip(this,-15)">
@@ -149,7 +154,7 @@
   </template>
 
   <template id="featureTpl">
-    <article class="feature">
+    <article class="feature" data-id="">
       <div class="cover">
         <img class="img" alt="" loading="eager" fetchpriority="high" />
         <span class="badge">最新期</span>
@@ -160,7 +165,7 @@
         <div class="meta"></div>
         <p class="desc"></p>
         <div class="player" data-player>
-          <audio preload="metadata"></audio>
+          <audio preload="none"></audio>
           <input class="range" type="range" min="0" max="100" value="0" step="0.1" aria-label="进度" oninput="window.__pp.seek(this)" />
           <div class="controls">
             <button class="btn" title="后退15秒" onclick="window.__pp.skip(this,-15)">
@@ -184,7 +189,9 @@
 
   <script>
   ;(() => {
-    const DATA = '/data/episodes.json';
+    const INDEX_URL = '/data/index.json';       // 轻量索引（推荐）
+    const FALLBACK_URL = '/data/episodes.json'; // 旧版全量
+    const DETAILS_URL = id => `/data/episodes/${id}.json`; // 详情分片
     const PAGE_SIZE = 4;
 
     const el = sel => document.querySelector(sel);
@@ -196,13 +203,21 @@
     const count = el('#count');
     el('#year').textContent = new Date().getFullYear();
 
-    const S = { raw: [], filtered: [], page: 0, tag: '全部', q: '' };
+    const S = { raw: [], filtered: [], page: 0, tag: '全部', q: '', map: new Map(), details: new Map() };
 
     const fmtDate = s => { if(!s) return ''; const d = new Date(s); if(Number.isNaN(d)) return s; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
     const fmtDur = sec => { if(sec==null) return ''; const t = Math.max(0, Math.floor(sec)); const m = Math.floor(t/60), r = t%60; const h = Math.floor(m/60); const mm = m%60; return h>0? `${h}:${String(mm).padStart(2,'0')}:${String(r).padStart(2,'0')}` : `${mm}:${String(r).padStart(2,'0')}`; };
 
     function mimeFrom(url){ if(!url) return ''; const ext = url.split('.').pop().toLowerCase().split('?')[0]; if(ext==='m4a'||ext==='mp4'||ext==='aac') return 'audio/mp4'; if(ext==='mp3') return 'audio/mpeg'; if(ext==='wav') return 'audio/wav'; return ''; }
-    function wireSources(audio, ep){ audio.innerHTML=''; const srcs = Array.isArray(ep.sources) ? ep.sources : (ep.audio ? [{src: ep.audio, type: mimeFrom(ep.audio)}] : []); srcs.forEach(s=>{ if(!s||!s.src) return; const e=document.createElement('source'); e.src=s.src; const t=s.type||mimeFrom(s.src); if(t) e.type=t; audio.appendChild(e); }); audio.removeAttribute('src'); audio.load(); }
+
+    function wireSources(audio, ep, eager=false){
+      audio.innerHTML='';
+      const srcs = Array.isArray(ep.sources) ? ep.sources : (ep.audio ? [{src: ep.audio, type: mimeFrom(ep.audio)}] : []);
+      srcs.forEach(s=>{ if(!s||!s.src) return; const e=document.createElement('source'); e.src=s.src; const t=s.type||mimeFrom(s.src); if(t) e.type=t; audio.appendChild(e); });
+      audio.setAttribute('playsinline','');
+      audio.removeAttribute('src');
+      if(eager){ try{ audio.load(); }catch(e){} }
+    }
 
     // --- 全局播放器助手 ---
     window.__pp = {
@@ -227,11 +242,36 @@
         audio.addEventListener('loadedmetadata', ()=>{ dur.textContent = toTime(audio.duration||0); });
         audio.addEventListener('timeupdate', ()=>{ if(!isFinite(audio.duration)) return; const p=(audio.currentTime/audio.duration)*100; range.value=p||0; cur.textContent=toTime(audio.currentTime); });
         audio.addEventListener('play', ()=>{ iconPlay.style.display='none'; iconPause.style.display='block'; });
-        audio.addEventListener('pause',()=>{ iconPlay.style.display='block'; iconPause.style.display='none'; });
+        audio.addEventListener('pause',()=>{ iconPlay.style.display='block'; iconPause.style.display='none'; const dk=document.getElementById('dock'); if(dk && dk.contains(audio) && typeof window.__dockOps?.hideIfIdle==='function'){ window.__dockOps.hideIfIdle(); } });
+        audio.addEventListener('ended',()=>{ const dk=document.getElementById('dock'); if(dk && dk.contains(audio) && typeof window.__dockOps?.hideIfIdle==='function'){ window.__dockOps.hideIfIdle(); } });
         if(rateBtn){ rateBtn.textContent=(audio.playbackRate.toFixed(1).replace(/\.0$/, ''))+'x'; }
       },
       seek(input){ const root=input.closest('[data-player]'); const audio=root.querySelector('audio'); if(isFinite(audio.duration)) audio.currentTime=(input.value/100)*audio.duration; },
-      playPause(btn){ const root=btn.closest('[data-player]'); const audio=root.querySelector('audio'); const setLoading=(on)=> btn.classList.toggle('loading', !!on); if(audio.readyState<3){ try{ setLoading(true); audio.load(); }catch(e){} } document.querySelectorAll('audio').forEach(a=>{ if(a!==audio) a.pause(); }); const p=audio.paused?audio.play():audio.pause(); if(p&&p.catch){ p.catch(()=> setLoading(false)); } },
+      playPause(btn){
+        const article = btn.closest('article');
+        const articleId = article?.dataset.id || null;
+        let root = btn.closest('[data-player]');
+
+        // 若 dock 中正好是该节目的播放器，先回插到卡片里再操作
+        const dock = document.getElementById('dock');
+        if (dock.firstElementChild && articleId && dock.dataset.id === articleId) {
+          const node = (typeof window.__dockOps?.reattach === 'function') ? window.__dockOps.reattach(articleId) : null;
+          if (node) root = node; // 用回插后的真实播放器作为根
+        } else if (dock.firstElementChild && (!articleId || dock.dataset.id !== articleId)) {
+          // 正在 dock 中播放的是其它节目，点击新节目时先暂停并收起 dock
+          const a = dock.querySelector('audio');
+          if (a) a.pause();
+          if (typeof window.__dockOps?.hideIfIdle === 'function') window.__dockOps.hideIfIdle();
+        }
+
+        const audio = root.querySelector('audio');
+        const setLoading = (on)=> btn.classList.toggle('loading', !!on);
+        if (audio.readyState < 3) { try { setLoading(true); audio.load(); } catch(e){} }
+        // 暂停其它实例
+        document.querySelectorAll('audio').forEach(a=>{ if(a!==audio) a.pause(); });
+        const p = audio.paused ? audio.play() : audio.pause();
+        if (p && p.catch) { p.catch(()=> setLoading(false)); }
+      },
       skip(btn, d){ const root=btn.closest('[data-player]'); const audio=root.querySelector('audio'); audio.currentTime=Math.max(0, Math.min((audio.currentTime||0)+d, audio.duration||Infinity)); },
       rate(btn){ const root=btn.closest('[data-player]'); const audio=root.querySelector('audio'); const steps=[1,1.2,1.5]; const cur=parseFloat(audio.playbackRate.toFixed(1)); const i=Math.max(0, steps.indexOf(cur)); const next=steps[(i+1)%steps.length]; audio.playbackRate=next; btn.textContent=(next.toString().replace(/\.0$/, ''))+'x'; }
     };
@@ -245,7 +285,7 @@
 
     function apply(){
       const qtext = S.q.trim().toLowerCase();
-      S.filtered = S.raw.filter(e => { const okTag=(S.tag==='全部')||(e.tags||[]).includes(S.tag); const inText=!qtext || [e.title,e.description,...(e.tags||[])].join(' ').toLowerCase().includes(qtext); return okTag && inText; });
+      S.filtered = S.raw.filter(e => { const okTag=(S.tag==='全部')||(e.tags||[]).includes(S.tag); const inText=!qtext || [e.title,e.description||'',...(e.tags||[])].join(' ').toLowerCase().includes(qtext); return okTag && inText; });
       S.filtered.sort((a,b)=> new Date(b.date||0) - new Date(a.date||0));
       S.page = 0; render();
     }
@@ -259,38 +299,87 @@
       count.textContent=`显示 ${Math.min(S.page*PAGE_SIZE + Math.min(PAGE_SIZE, rest.length), rest.length)}/${rest.length} 期`;
       more.disabled=rest.length===0; S.page=0; loadMore();
       tryAttachBack();
+      observePlayers();
+    }
+
+    function ensureDetail(ep){
+      // 若已拥有描述/音频则不再请求
+      if(ep && ep.description && (ep.audio || ep.sources)) return Promise.resolve(ep);
+      if(!ep || !ep.id) return Promise.resolve(ep);
+      if(S.details.has(ep.id)) return S.details.get(ep.id);
+      const p = fetch(DETAILS_URL(ep.id), {cache:'no-store'}).then(r=> r.ok? r.json(): {} ).then(d=>{
+        Object.assign(ep, d);
+        return ep;
+      }).catch(()=>ep);
+      S.details.set(ep.id, p);
+      return p;
     }
 
     function renderFeature(ep){
       const t=document.getElementById('featureTpl'); const node=t.content.cloneNode(true);
       const article=node.querySelector('article.feature'); const img=node.querySelector('.img'); const tag=node.querySelector('.tag'); const title=node.querySelector('.title'); const meta=node.querySelector('.meta'); const desc=node.querySelector('.desc'); const audio=node.querySelector('audio'); const player=node.querySelector('[data-player]');
       if(article) article.dataset.id=ep.id||''; img.src=ep.cover||''; img.alt=ep.title||''; if(ep.tags&&ep.tags[0]){ tag.hidden=false; tag.textContent=ep.tags[0]; }
-      title.textContent=ep.title||'未命名节目'; const date=fmtDate(ep.date); const dur=fmtDur(ep.duration); meta.textContent=`${date?date:''}${date&&dur?' · ':''}${dur?dur:''}`; desc.textContent=ep.description||'';
-      wireSources(audio, ep);
-      // 首屏节目：允许浏览器提前拉取一点数据
+      title.textContent=ep.title||'未命名节目'; const date=fmtDate(ep.date); const dur=fmtDur(ep.duration); meta.textContent=`${date?date:''}${date&&dur?' · ':''}${dur?dur:''}`;
+      if(ep.description){ desc.textContent=ep.description; } else { desc.innerHTML = '<div class="skeleton sk-line" style="width:90%"></div><div class="skeleton sk-line" style="width:95%"></div><div class="skeleton sk-line" style="width:80%"></div>'; }
+      wireSources(audio, ep, true);
       audio.setAttribute('preload','auto');
-      audio.load(); window.__pp.initOne(player); return node;
+      // 预加载首屏音频
+      if(ep.audio){ const l=document.createElement('link'); l.rel='preload'; l.as='audio'; l.href=ep.audio; document.head.appendChild(l); }
+      window.__pp.initOne(player);
+      // 若缺详情，立即补齐并刷新
+      ensureDetail(ep).then(()=>{
+        if(ep.description) desc.textContent = ep.description;
+        wireSources(audio, ep, false);
+      });
+      return node;
     }
 
     function renderCard(ep){
       const t=document.getElementById('cardTpl'); const node=t.content.cloneNode(true);
       const article=node.querySelector('article.card'); const img=node.querySelector('.img'); const tag=node.querySelector('.tag'); const title=node.querySelector('.title'); const meta=node.querySelector('.meta'); const desc=node.querySelector('.desc'); const audio=node.querySelector('audio'); const player=node.querySelector('[data-player]');
       if(article) article.dataset.id=ep.id||''; img.src=ep.cover||''; img.alt=ep.title||''; if(ep.tags&&ep.tags[0]){ tag.hidden=false; tag.textContent=ep.tags[0]; }
-      title.textContent=ep.title||'未命名节目'; const date=fmtDate(ep.date); const dur=fmtDur(ep.duration); meta.textContent=`${date?date:''}${date&&dur?' · ':''}${dur?dur:''}`; desc.textContent=ep.description||'';
-      wireSources(audio, ep); window.__pp.initOne(player); return node;
+      title.textContent=ep.title||'未命名节目'; const date=fmtDate(ep.date); const dur=fmtDur(ep.duration); meta.textContent=`${date?date:''}${date&&dur?' · ':''}${dur?dur:''}`;
+      if(ep.description){ desc.textContent=ep.description; } else { desc.innerHTML = '<div class="skeleton sk-line" style="width:88%"></div><div class="skeleton sk-line" style="width:92%"></div>'; }
+      wireSources(audio, ep, false); window.__pp.initOne(player);
+      // 进入视口再取详情
+      node._hydrate = ()=> ensureDetail(ep).then(()=>{
+        if(ep.description) desc.textContent = ep.description;
+        wireSources(audio, ep, false);
+      });
+      return node;
     }
 
     function loadMore(){
       const start=S.page*PAGE_SIZE; const end=Math.min(start+PAGE_SIZE, S._rest.length);
-      const items=S._rest.slice(start,end); items.forEach(ep=>list.appendChild(renderCard(ep))); S.page++;
+      const items=S._rest.slice(start,end); const nodes = items.map(ep=> renderCard(ep)); nodes.forEach(n=>list.appendChild(n)); S.page++;
       count.textContent=`显示 ${Math.min(end, S._rest.length)}/${S._rest.length} 期`;
       if(end>=S._rest.length){ more.disabled=true; more.textContent='没有更多了'; } else { more.disabled=false; more.textContent='加载更多'; }
       tryAttachBack();
+      observePlayers();
+    }
+
+    async function getIndex(){
+      // 优先 index.json，失败回退 episodes.json
+      try{
+        const r = await fetch(INDEX_URL, {cache:'no-store'});
+        if(r.ok){ const j = await r.json(); return Array.isArray(j.episodes)? j.episodes : []; }
+      }catch{}
+      try{
+        const r = await fetch(FALLBACK_URL, {cache:'no-store'});
+        if(r.ok){ const j = await r.json(); return Array.isArray(j.episodes)? j.episodes : []; }
+      }catch{}
+      return [];
     }
 
     async function init(){
-      try{ const res=await fetch(DATA,{cache:'no-store'}); const data=await res.json(); const eps=Array.isArray(data.episodes)?data.episodes:[]; S.raw=eps; buildChips(); apply(); }
-      catch(e){ console.error(e); }
+      try{
+        const eps = await getIndex();
+        S.raw = eps;
+        // 建立索引
+        S.map.clear(); eps.forEach(e=> S.map.set(e.id, e));
+        buildChips();
+        apply();
+      }catch(e){ console.error(e); }
     }
 
     more.addEventListener('click', loadMore);
@@ -298,10 +387,33 @@
 
     // 播放保护：把当前播放移到 dock，重绘后尝试放回
     const dock=document.getElementById('dock');
-    function preserveIfPlaying(){ const playing=Array.from(document.querySelectorAll('audio')).find(a=>!a.paused&&!a.ended&&a.readyState>0); if(!playing) return; const player=playing.closest('[data-player]'); const article=playing.closest('article'); S.preservedId=article?.dataset.id||null; if(player&&dock){ dock.innerHTML=''; dock.appendChild(player); dock.hidden=false; } }
-    function tryAttachBack(){ if(!S.preservedId) return; const host=document.querySelector(`article[data-id="${S.preservedId}"] [data-player]`); if(host&&dock.firstElementChild){ host.replaceWith(dock.firstElementChild); dock.hidden=true; S.preservedId=null; } }
+    function hideDockIfIdle(){ const a=dock.querySelector('audio'); if(!a || a.paused || a.ended){ dock.innerHTML=''; dock.hidden=true; S.preservedId=null; dock.removeAttribute('data-id'); } }
+    function reattachToArticle(id){ const host=document.querySelector(`article[data-id="${id}"] [data-player]`); if(host && dock.firstElementChild){ const node=dock.firstElementChild; host.replaceWith(node); dock.hidden=true; dock.innerHTML=''; S.preservedId=null; dock.removeAttribute('data-id'); return node; } return host; }
+    function preserveIfPlaying(){ const playing=[...document.querySelectorAll('audio')].find(a=>!a.paused&&!a.ended&&a.readyState>0); if(!playing){ hideDockIfIdle(); return; } const player=playing.closest('[data-player]'); const article=playing.closest('article'); const id=article?.dataset.id||null; if(!player||!id) return; if(dock.firstElementChild===player){ dock.hidden=false; return; } S.preservedId=id; dock.dataset.id=id; dock.innerHTML=''; dock.appendChild(player); dock.hidden=false; }
+    function tryAttachBack(){ if(!S.preservedId){ hideDockIfIdle(); return; } reattachToArticle(S.preservedId); }
+    window.__dockOps = { hideIfIdle: hideDockIfIdle, reattach: reattachToArticle };
 
     init();
+
+    // 懒加载：卡片进入视口附近才加载音频元数据 & 详情
+    let io;
+    function observePlayers(){
+      if(!('IntersectionObserver' in window)) return;
+      if(!io){
+        io = new IntersectionObserver((entries)=>{
+          entries.forEach(entry=>{
+            if(entry.isIntersecting){
+              const article = entry.target; io.unobserve(article);
+              const player = article.querySelector('[data-player]');
+              const audio = player?.querySelector('audio');
+              if(audio && audio.readyState===0){ try{ audio.preload='metadata'; audio.load(); }catch(e){} }
+              if(typeof article._hydrate === 'function'){ article._hydrate(); }
+            }
+          });
+        }, { rootMargin: '200px 0px', threshold: 0.01 });
+      }
+      document.querySelectorAll('article.card').forEach(p=>{ if(!p._obs){ io.observe(p); p._obs=true; } });
+    }
   })();
   </script>
 </body>
