@@ -232,18 +232,20 @@
         const rateBtn = root.querySelector('[data-rate]');
         const toTime = t=>{const s=Math.floor(t); const m=Math.floor(s/60), r=s%60; return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`};
 
-        const setLoading = (on)=>{ playBtn.classList.toggle('loading', !!on); };
+        // 仅当用户点击后（root 加上 intent 类）才显示“加载中”
+        const setLoading = (on)=>{ if(!root.classList.contains('intent')) return; playBtn.classList.toggle('loading', !!on); };
+
         audio.addEventListener('loadstart', ()=> setLoading(true));
         audio.addEventListener('waiting',   ()=> setLoading(true));
         audio.addEventListener('stalled',   ()=> setLoading(true));
-        audio.addEventListener('canplay',   ()=> setLoading(false));
-        audio.addEventListener('playing',   ()=> setLoading(false));
+        audio.addEventListener('canplay',   ()=> { setLoading(false); root.classList.remove('intent'); });
+        audio.addEventListener('playing',   ()=> { setLoading(false); root.classList.remove('intent'); });
 
         audio.addEventListener('loadedmetadata', ()=>{ dur.textContent = toTime(audio.duration||0); });
         audio.addEventListener('timeupdate', ()=>{ if(!isFinite(audio.duration)) return; const p=(audio.currentTime/audio.duration)*100; range.value=p||0; cur.textContent=toTime(audio.currentTime); });
         audio.addEventListener('play', ()=>{ iconPlay.style.display='none'; iconPause.style.display='block'; });
-        audio.addEventListener('pause',()=>{ iconPlay.style.display='block'; iconPause.style.display='none'; const dk=document.getElementById('dock'); if(dk && dk.contains(audio) && typeof window.__dockOps?.hideIfIdle==='function'){ window.__dockOps.hideIfIdle(); } });
-        audio.addEventListener('ended',()=>{ const dk=document.getElementById('dock'); if(dk && dk.contains(audio) && typeof window.__dockOps?.hideIfIdle==='function'){ window.__dockOps.hideIfIdle(); } });
+        audio.addEventListener('pause',()=>{ iconPlay.style.display='block'; iconPause.style.display='none'; setLoading(false); root.classList.remove('intent'); const dk=document.getElementById('dock'); if(dk && dk.contains(audio) && typeof window.__dockOps?.hideIfIdle==='function'){ window.__dockOps.hideIfIdle(); } });
+        audio.addEventListener('ended',()=>{ setLoading(false); root.classList.remove('intent'); const dk=document.getElementById('dock'); if(dk && dk.contains(audio) && typeof window.__dockOps?.hideIfIdle==='function'){ window.__dockOps.hideIfIdle(); } });
         if(rateBtn){ rateBtn.textContent=(audio.playbackRate.toFixed(1).replace(/\.0$/, ''))+'x'; }
       },
       seek(input){ const root=input.closest('[data-player]'); const audio=root.querySelector('audio'); if(isFinite(audio.duration)) audio.currentTime=(input.value/100)*audio.duration; },
@@ -265,12 +267,14 @@
         }
 
         const audio = root.querySelector('audio');
+        // 标记“用户触发播放”，只有这时才会显示加载中 spinner
+        root.classList.add('intent');
         const setLoading = (on)=> btn.classList.toggle('loading', !!on);
         if (audio.readyState < 3) { try { setLoading(true); audio.load(); } catch(e){} }
         // 暂停其它实例
         document.querySelectorAll('audio').forEach(a=>{ if(a!==audio) a.pause(); });
         const p = audio.paused ? audio.play() : audio.pause();
-        if (p && p.catch) { p.catch(()=> setLoading(false)); }
+        if (p && p.catch) { p.catch(()=> { setLoading(false); root.classList.remove('intent'); }); }
       },
       skip(btn, d){ const root=btn.closest('[data-player]'); const audio=root.querySelector('audio'); audio.currentTime=Math.max(0, Math.min((audio.currentTime||0)+d, audio.duration||Infinity)); },
       rate(btn){ const root=btn.closest('[data-player]'); const audio=root.querySelector('audio'); const steps=[1,1.2,1.5]; const cur=parseFloat(audio.playbackRate.toFixed(1)); const i=Math.max(0, steps.indexOf(cur)); const next=steps[(i+1)%steps.length]; audio.playbackRate=next; btn.textContent=(next.toString().replace(/\.0$/, ''))+'x'; }
