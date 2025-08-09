@@ -1,19 +1,6 @@
 {
-  "title": "企业培训播客",
+  "title": "派拉API网关培训播客",
   "episodes": [
-    {
-      "id": "sample",
-      "title": "样例：欢迎来到企业培训播客",
-      "date": "2025-08-09",
-      "description": "这是一个示例节目。替换封面与音频后，修改 data/episodes.json 即可发布新内容。",
-      "duration": 30,
-      "cover": "/episodes/sample/cover.svg",
-      "audio": "/episodes/sample/audio.wav",
-      "tags": [
-        "数字化转型",
-        "项目管理"
-      ]
-    },
 	{
       "id": "01",
       "title": "网络协议——计算机的“共同语言”与业务集成的基石",
