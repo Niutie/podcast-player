@@ -230,7 +230,9 @@
 
       srcs.forEach(s=>{ if(!s||!s.src) return; const e=document.createElement('source'); e.src=s.src; const t=s.type||mimeFrom(s.src); if(t) e.type=t; audio.appendChild(e); });
       audio.setAttribute('playsinline','');
-      audio.removeAttribute('src');
+      // 若只有一个来源，给 src 赋值，兼容个别老内核
+      const sources = audio.querySelectorAll('source');
+      if(sources.length===1){ audio.setAttribute('src', sources[0].src); } else { audio.removeAttribute('src'); }
       if(eager){ try{ audio.load(); }catch(e){} }
     }
 
@@ -298,9 +300,19 @@
         }
 
         const audio = root.querySelector('audio');
+        // 若卡片尚未 hydrate，马上补齐（不会触发加载）
+        if(article && typeof article._hydrate === 'function'){ try{ article._hydrate(); }catch(e){} }
+        // 若还没有任何 source（极端竞态场景），即时补上
+        if(!audio.querySelector('source')){
+          const ep = (articleId && S.map.get(articleId)) || {};
+          wireSources(audio, ep, false);
+        }
+
         // 标记“用户触发播放”，只有这时才会显示加载中 spinner
         root.classList.add('intent');
         const setLoading = (on)=> btn.classList.toggle('loading', !!on);
+        // 兼容某些内核：点击时把 preload 切到 metadata 以确保拉起
+        audio.setAttribute('preload','metadata');
         if (audio.readyState < 3) { try { setLoading(true); audio.load(); } catch(e){} }
         // 暂停其它实例
         document.querySelectorAll('audio').forEach(a=>{ if(a!==audio) a.pause(); });
