@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>企业培训播客</title>
+  <title>派拉API网关产品部门培训</title>
   <meta name="description" content="企业培训播客：搜索、分类、当期内容、自定义音频播放器、往期回顾。" />
   <link rel="icon" href="/favicon.ico" />
   <style>
@@ -31,7 +31,9 @@
     .filters{margin:14px 0 10px}
     .filter-title{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:14px;margin-bottom:8px}
     .chips{display:flex;flex-wrap:wrap;gap:8px}
-    .chip{appearance:none;border:none;cursor:pointer;padding:8px 12px;border-radius:999px;background:var(--pill);color:#111827;font-weight:600;font-size:14px}
+    .chip{appearance:none;border:1px solid var(--line);cursor:pointer;padding:8px 14px;border-radius:999px;background:var(--pill);color:#111827;font-weight:600;font-size:14px;transition:.2s ease;border-color:transparent}
+    .chip:hover{transform:translateY(-1px)}
+    .chip.active{background:var(--pill-active);color:var(--pill-active-ink);box-shadow:0 4px 10px rgba(17,24,39,.12)}
     .chip.active{background:var(--pill-active);color:var(--pill-active-ink)}
 
     /* 分段标题 */
@@ -57,13 +59,20 @@
     .card .pad{padding:12px}
 
     /* 自定义播放器 */
-    .player{background:#fafbff;border:1px solid var(--line);border-radius:12px;padding:10px}
-    .controls{display:flex;justify-content:center;align-items:center;gap:12px;margin:8px 0}
-    .btn{appearance:none;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;cursor:pointer}
+    .player{background:#fafbff;border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:0 6px 18px rgba(17,24,39,.06)}
+    .controls{display:flex;justify-content:center;align-items:center;gap:14px;margin:10px 0}
+    .btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid var(--line);background:linear-gradient(180deg,#fff,#f5f6fa);border-radius:999px;cursor:pointer;box-shadow:0 4px 12px rgba(17,24,39,.08);transition:.15s ease;padding:0}
+    .btn:hover{transform:translateY(-1px)}
+    .btn:active{transform:translateY(0)}
+    .btn:disabled{opacity:.5;cursor:default}
+    .btn.round{width:52px;height:52px;background:linear-gradient(180deg,#111827,#1f2937);color:#fff;border-color:#0f1625;box-shadow:0 10px 18px rgba(17,24,39,.25)}
+    .btn.round svg{filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))}
     .btn:disabled{opacity:.5;cursor:default}
     .btn.round{border-radius:14px}
     .time{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
-    .range{width:100%}
+    .range{width:100%;-webkit-appearance:none;background:linear-gradient(180deg,#e9edf6,#e1e6f2);height:8px;border-radius:999px;outline:none;border:1px solid var(--line)}
+    .range::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#ffffff;border:1px solid #d7dce6;box-shadow:0 2px 6px rgba(17,24,39,.16)}
+    .range::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#ffffff;border:1px solid #d7dce6;box-shadow:0 2px 6px rgba(17,24,39,.16)}
 
     .load{display:flex;justify-content:center;margin:16px 0}
     .load .btn{padding:10px 14px;border-radius:999px}
@@ -73,7 +82,7 @@
 </head>
 <body>
   <header>
-    <div class="bar">企业培训播客</div>
+    <div class="bar">派拉API网关产品部门培训</div>
   </header>
 
   <main>
@@ -116,9 +125,16 @@
           <audio preload="metadata"></audio>
           <input class="range" type="range" min="0" max="100" value="0" step="0.1" aria-label="进度" oninput="window.__pp.seek(this)" />
           <div class="controls">
-            <button class="btn" data-skip="-15" title="后退15秒" onclick="window.__pp.skip(this,-15)">⏮︎</button>
-            <button class="btn round" data-toggle title="播放/暂停" onclick="window.__pp.playPause(this)">⏯︎</button>
-            <button class="btn" data-skip="30" title="快进30秒" onclick="window.__pp.skip(this,30)">⏭︎</button>
+            <button class="btn" data-skip="-15" title="后退15秒" onclick="window.__pp.skip(this,-15)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 19l-7-7 7-7"/><path d="M20 19l-7-7 7-7"/></svg>
+            </button>
+            <button class="btn round" data-toggle title="播放/暂停" onclick="window.__pp.playPause(this)">
+              <svg class="ico-play" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+              <svg class="ico-pause" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+            </button>
+            <button class="btn" data-skip="30" title="快进30秒" onclick="window.__pp.skip(this,30)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 5l7 7-7 7"/><path d="M4 5l7 7-7 7"/></svg>
+            </button>
           </div>
           <div class="time"><span data-cur>00:00</span><span data-dur>--:--</span></div>
         </div>
@@ -141,9 +157,16 @@
           <audio preload="metadata"></audio>
           <input class="range" type="range" min="0" max="100" value="0" step="0.1" aria-label="进度" oninput="window.__pp.seek(this)" />
           <div class="controls">
-            <button class="btn" data-skip="-15" title="后退15秒" onclick="window.__pp.skip(this,-15)">⏮︎</button>
-            <button class="btn round" data-toggle title="播放/暂停" onclick="window.__pp.playPause(this)">⏯︎</button>
-            <button class="btn" data-skip="30" title="快进30秒" onclick="window.__pp.skip(this,30)">⏭︎</button>
+            <button class="btn" data-skip="-15" title="后退15秒" onclick="window.__pp.skip(this,-15)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 19l-7-7 7-7"/><path d="M20 19l-7-7 7-7"/></svg>
+            </button>
+            <button class="btn round" data-toggle title="播放/暂停" onclick="window.__pp.playPause(this)">
+              <svg class="ico-play" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+              <svg class="ico-pause" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+            </button>
+            <button class="btn" data-skip="30" title="快进30秒" onclick="window.__pp.skip(this,30)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 5l7 7-7 7"/><path d="M4 5l7 7-7 7"/></svg>
+            </button>
           </div>
           <div class="time"><span data-cur>00:00</span><span data-dur>--:--</span></div>
         </div>
@@ -213,6 +236,9 @@
         const range = root.querySelector('.range');
         const cur = root.querySelector('[data-cur]');
         const dur = root.querySelector('[data-dur]');
+        const playBtn = root.querySelector('[data-toggle]');
+        const iconPlay = playBtn.querySelector('.ico-play');
+        const iconPause = playBtn.querySelector('.ico-pause');
 
         function toTime(t){ const s=Math.floor(t); const m=Math.floor(s/60), r=s%60; return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`; }
 
@@ -223,6 +249,8 @@
           range.value = p || 0;
           cur.textContent = toTime(audio.currentTime);
         });
+        audio.addEventListener('play', ()=>{ iconPlay.style.display='none'; iconPause.style.display='block'; });
+        audio.addEventListener('pause',()=>{ iconPlay.style.display='block'; iconPause.style.display='none'; });
       },
       seek(input){
         const root = input.closest('[data-player]');
@@ -232,7 +260,6 @@
       playPause(btn){
         const root = btn.closest('[data-player]');
         const audio = root.querySelector('audio');
-        // 暂停其它
         document.querySelectorAll('audio').forEach(a => { if(a!==audio) a.pause(); });
         audio.paused ? audio.play() : audio.pause();
       },
@@ -244,14 +271,22 @@
     };
 
     function buildChips(){
-      const set = new Set(['全部']);
+      const set = new Set();
       S.raw.forEach(e => (e.tags||[]).forEach(t => set.add(t)));
-      chips.innerHTML = '';
-      [...set].forEach(name => {
-        const btn = document.createElement('button');
-        btn.className = 'chip' + (name===S.tag?' active':'');
-        btn.textContent = name;
-        btn.addEventListener('click', () => { S.tag = name; apply(); });
+      const ordered = ['全部', ...Array.from(set)];
+      chips.innerHTML = ordered.map(name => `<button class="chip${name===S.tag?' active':''}" data-tag="${name}">${name}</button>`).join('');
+      // 事件委托，单选高亮
+      chips.onclick = (ev)=>{
+        const btn = ev.target.closest('.chip');
+        if(!btn) return;
+        const t = btn.dataset.tag;
+        if(!t) return;
+        S.tag = t;
+        // 更新选中态
+        chips.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.tag===S.tag));
+        apply();
+      };
+    });
         chips.appendChild(btn);
       });
     }
