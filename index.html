@@ -250,18 +250,21 @@
       playPause(btn){
         const article = btn.closest('article'); const articleId = article?.dataset.id || null; const root = btn.closest('[data-player]');
         if(!articleId) return;
-        // 标记 intent，仅在用户触发时显示 loading
-        root.classList.add('intent'); btn.classList.add('loading');
+        const switching = (S.activeId !== articleId);
+        const willPlay = switching || core.paused;
+        S.activeRoot = root;
+        if(willPlay){ root.classList.add('intent'); btn.classList.add('loading'); }
         const ep = S.map.get(articleId) || {};
-        const ensure = (ep && ((Array.isArray(ep.sources)&&ep.sources.length>0) || ep.audio)) ? Promise.resolve(ep) : ensureDetail(ep);
-        ensure.then(()=>{
-          // 如果切换到新节目，重绑音源
-          if(S.activeId !== articleId){ wireSources(core, ep, false); S.activeId = articleId; }
-          S.activeRoot = root;
+        ensureSources(ep).then(()=>{
+          if(switching){ wireSources(core, ep, false); S.activeId = articleId; }
           core.setAttribute('preload','metadata'); if(core.readyState < 3){ try{ core.load(); }catch(e){} }
-          // 播放/暂停
           document.querySelectorAll('[data-player] .btn.primary').forEach(b=>{ if(b!==btn) b.classList.remove('loading'); });
-          const p = core.paused ? core.play() : core.pause(); if(p && p.catch){ p.catch(()=>{ btn.classList.remove('loading'); root.classList.remove('intent'); }); }
+          if(willPlay){
+            const p = core.play();
+            if(p && p.then){ p.then(()=>{ btn.classList.remove('loading'); root.classList.remove('intent'); }).catch(()=>{ btn.classList.remove('loading'); root.classList.remove('intent'); }); }
+          }else{
+            core.pause(); btn.classList.remove('loading'); root.classList.remove('intent');
+          }
         });
       },
       skip(btn, d){ core.currentTime=Math.max(0, Math.min((core.currentTime||0)+d, core.duration||Infinity)); },
@@ -331,6 +334,22 @@
       }).catch(()=>ep);
       S.details.set(ep.id, p);
       return p;
+    }
+    // 确保有可用音频源：无详情则拉详情，仍无则探测 /episodes/{id}/audio.(mp3|m4a)
+    async function ensureSources(ep){
+      if(!ep) return ep;
+      if((Array.isArray(ep.sources)&&ep.sources.length>0) || ep.audio) return ep;
+      await ensureDetail(ep);
+      if((Array.isArray(ep.sources)&&ep.sources.length>0) || ep.audio) return ep;
+      if(!ep.id) return ep;
+      const mp3 = `/episodes/${ep.id}/audio.mp3`;
+      const m4a = `/episodes/${ep.id}/audio.m4a`;
+      async function probe(u){ try{ const r=await fetch(u,{method:'HEAD',cache:'no-store'}); return r.ok; }catch{ return false; } }
+      const order = (PREFER==='m4a') ? [m4a, mp3] : [mp3, m4a];
+      const list = [];
+      for(const u of order){ if(await probe(u)) list.push({src:u, type:mimeFrom(u)}); }
+      if(list.length){ ep.sources = list; }
+      return ep;
     }
 
     function renderFeature(ep){
@@ -413,19 +432,88 @@
     // 绑定全局内核事件（只绑定一次）
     (function bindCore(){
       const toTime = t=>{const s=Math.floor(t||0); const m=Math.floor(s/60), r=s%60; return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`};
-      let lastProgress = Date.now(); let stallTimer=null;
-      function ui(){ const r=S.activeRoot; if(!r) return {cur:null,dur:null,range:null,btn:null,iconPlay:null,iconPause:null}; return { cur:r.querySelector('[data-cur]'), dur:r.querySelector('[data-dur]'), range:r.querySelector('.range'), btn:r.querySelector('[data-toggle]'), iconPlay:r.querySelector('.ico-play'), iconPause:r.querySelector('.ico-pause') }; }
-      function markIdle(){ const u=ui(); if(u.btn){ u.btn.classList.remove('loading'); } if(S.activeRoot){ S.activeRoot.classList.remove('intent'); } }
-      core.addEventListener('loadedmetadata', ()=>{ const u=ui(); if(u.dur) u.dur.textContent=toTime(core.duration||0); });
-      core.addEventListener('timeupdate', ()=>{ lastProgress=Date.now(); const u=ui(); if(u.range&&isFinite(core.duration)){ u.range.value=(core.currentTime/core.duration)*100||0; } if(u.cur){ u.cur.textContent=toTime(core.currentTime||0); } });
-      core.addEventListener('play', ()=>{ const u=ui(); if(u.iconPlay) u.iconPlay.style.display='none'; if(u.iconPause) u.iconPause.style.display='block'; markIdle(); });
-      core.addEventListener('pause',()=>{ const u=ui(); if(u.iconPlay) u.iconPlay.style.display='block'; if(u.iconPause) u.iconPause.style.display='none'; markIdle(); });
-      core.addEventListener('ended',()=>{ markIdle(); });
+      let lastProgress = Date.now();
+      let stallTimer = null;
+      function ui(){
+        const r = S.activeRoot;
+        if(!r) return {cur:null,dur:null,range:null,btn:null,iconPlay:null,iconPause:null};
+        return {
+          cur: r.querySelector('[data-cur]'),
+          dur: r.querySelector('[data-dur]'),
+          range: r.querySelector('.range'),
+          btn: r.querySelector('[data-toggle]'),
+          iconPlay: r.querySelector('.ico-play'),
+          iconPause: r.querySelector('.ico-pause')
+        };
+      }
+      function markIdle(){
+        const u = ui();
+        if(u.btn) u.btn.classList.remove('loading');
+        if(S.activeRoot) S.activeRoot.classList.remove('intent');
+      }
+
+      core.addEventListener('loadedmetadata', ()=>{
+        const u = ui();
+        if(u.dur) u.dur.textContent = toTime(core.duration||0);
+      });
+      core.addEventListener('loadeddata', ()=>{ markIdle(); });
+      core.addEventListener('canplay', ()=>{ markIdle(); });
+      core.addEventListener('canplaythrough', ()=>{ markIdle(); });
+
+      core.addEventListener('timeupdate', ()=>{
+        lastProgress = Date.now();
+        const u = ui();
+        if(u.range && isFinite(core.duration)){
+          u.range.value = (core.currentTime/core.duration)*100 || 0;
+        }
+        if(u.cur){ u.cur.textContent = toTime(core.currentTime||0); }
+        if(u.btn && u.btn.classList.contains('loading')){ u.btn.classList.remove('loading'); }
+        if(S.activeRoot){ S.activeRoot.classList.remove('intent'); }
+      });
+
+      core.addEventListener('play', ()=>{
+        const u = ui();
+        if(u.iconPlay) u.iconPlay.style.display='none';
+        if(u.iconPause) u.iconPause.style.display='block';
+        markIdle();
+      });
+      core.addEventListener('pause', ()=>{
+        const u = ui();
+        if(u.iconPlay) u.iconPlay.style.display='block';
+        if(u.iconPause) u.iconPause.style.display='none';
+        markIdle();
+      });
+      core.addEventListener('ended', ()=>{ markIdle(); });
+
       // 卡顿自愈 + 源切换
-      function nextSrc(){ const list = Array.isArray(core._srcs)? core._srcs: []; let idx=(core._srcIdx||0)+1; if(idx<list.length){ core._srcIdx=idx; core.src=list[idx]; try{ core.load(); const p=core.play(); if(p&&p.catch) p.catch(()=>{});}catch(e){} } }
-      function kick(){ try{ if(core.readyState<3) core.load(); if(isFinite(core.duration) && (core.currentTime < (core.duration-0.05))) core.currentTime=Math.max(0,(core.currentTime||0)+0.01); const p=core.play(); if(p&&p.catch) p.catch(()=>{});}catch(e){} }
-      core.addEventListener('waiting', ()=>{ clearTimeout(stallTimer); const u=ui(); if(u.btn) u.btn.classList.add('loading'); stallTimer=setTimeout(()=>{ (Date.now()-lastProgress>1500)? nextSrc(): kick(); }, 900); });
-      core.addEventListener('stalled', ()=>{ clearTimeout(stallTimer); const u=ui(); if(u.btn) u.btn.classList.add('loading'); stallTimer=setTimeout(()=>{ (Date.now()-lastProgress>1500)? nextSrc(): kick(); }, 900); });
+      function nextSrc(){
+        const list = Array.isArray(core._srcs) ? core._srcs : [];
+        let idx = (core._srcIdx||0) + 1;
+        if(idx < list.length){
+          core._srcIdx = idx;
+          core.src = list[idx];
+          try{ core.load(); const p = core.play(); if(p&&p.catch) p.catch(()=>{}); }catch(e){}
+        }
+      }
+      function kick(){
+        try{
+          if(core.readyState < 3) core.load();
+          if(isFinite(core.duration) && (core.currentTime < (core.duration - 0.05))){
+            core.currentTime = Math.max(0, (core.currentTime||0) + 0.01);
+          }
+          const p = core.play(); if(p && p.catch) p.catch(()=>{});
+        }catch(e){}
+      }
+      core.addEventListener('waiting', ()=>{
+        clearTimeout(stallTimer);
+        const u = ui(); if(u.btn) u.btn.classList.add('loading');
+        stallTimer = setTimeout(()=>{ (Date.now()-lastProgress>1500) ? nextSrc() : kick(); }, 900);
+      });
+      core.addEventListener('stalled', ()=>{
+        clearTimeout(stallTimer);
+        const u = ui(); if(u.btn) u.btn.classList.add('loading');
+        stallTimer = setTimeout(()=>{ (Date.now()-lastProgress>1500) ? nextSrc() : kick(); }, 900);
+      });
       core.addEventListener('error', ()=>{ clearTimeout(stallTimer); nextSrc(); });
     })();
   })();
