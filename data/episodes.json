@@ -50,7 +50,7 @@
       "publishAt": "2025-08-10T11:00:00+08:00",
       "status": "published",
       "description": "“熔断、降级与重试”是分布式系统高可用架构中不可或缺的组成部分。它们共同构建了一套多层次的弹性防御体系，使系统能够更智能地应对各种故障和高负载情况，从而保障核心业务的连续性和用户体验。理解并恰当地运用这些策略，是构建健壮、可靠分布式系统的基石。",
-      "cover": "/episodes/004/cover.webp",
+      "cover": "/episodes/04/cover.webp",
       "sources": [
         { "src": "/episodes/04/audio.m4a", "type": "audio/mp4" },
         { "src": "/episodes/04/audio.mp3", "type": "audio/mpeg" }
