@@ -338,13 +338,30 @@
     // 确保有可用音频源：无详情则拉详情，仍无则探测 /episodes/{id}/audio.(mp3|m4a)
     async function ensureSources(ep){
       if(!ep) return ep;
-      if((Array.isArray(ep.sources)&&ep.sources.length>0) || ep.audio) return ep;
-      await ensureDetail(ep);
-      if((Array.isArray(ep.sources)&&ep.sources.length>0) || ep.audio) return ep;
+      // helper: 探测并校验为音频
+      async function probe(u){
+        try{
+          const r = await fetch(u, { method:'HEAD', cache:'no-store' });
+          if(!r.ok) return false;
+          const ct = (r.headers.get('content-type')||'').toLowerCase();
+          return ct.startsWith('audio/');
+        }catch{ return false; }
+      }
+      // 已有 sources：校验一遍，过滤非音频/错指向（例如被 SPA 200 成 index.html）
+      if(Array.isArray(ep.sources) && ep.sources.length){
+        const checked = [];
+        for(const s of ep.sources){ if(s && s.src && await probe(s.src)) checked.push({src:s.src, type:(s.type||mimeFrom(s.src))}); }
+        ep.sources = checked;
+        if(checked.length) return ep;
+      }
+      // 没有 sources，拉详情
+      if(!ep.audio){ await ensureDetail(ep); }
+      if(Array.isArray(ep.sources) && ep.sources.length) return ep;
+      if(ep.audio && await probe(ep.audio)) return ep;
+      // 兜底：按 prefer 顺序探测常规路径
       if(!ep.id) return ep;
       const mp3 = `/episodes/${ep.id}/audio.mp3`;
       const m4a = `/episodes/${ep.id}/audio.m4a`;
-      async function probe(u){ try{ const r=await fetch(u,{method:'HEAD',cache:'no-store'}); return r.ok; }catch{ return false; } }
       const order = (PREFER==='m4a') ? [m4a, mp3] : [mp3, m4a];
       const list = [];
       for(const u of order){ if(await probe(u)) list.push({src:u, type:mimeFrom(u)}); }
@@ -493,6 +510,9 @@
           core._srcIdx = idx;
           core.src = list[idx];
           try{ core.load(); const p = core.play(); if(p&&p.catch) p.catch(()=>{}); }catch(e){}
+        } else {
+          const u = ui(); if(u && u.btn) u.btn.classList.remove('loading');
+          if(S.activeRoot) S.activeRoot.classList.remove('intent');
         }
       }
       function kick(){
