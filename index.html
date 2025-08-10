@@ -250,14 +250,19 @@
       playPause(btn){
         const article = btn.closest('article'); const articleId = article?.dataset.id || null; const root = btn.closest('[data-player]');
         if(!articleId) return;
-        // 如果切换到新节目，重绑音源
-        if(S.activeId !== articleId){ const ep = S.map.get(articleId) || {}; wireSources(core, ep, false); S.activeId = articleId; S.activeRoot = root; }
-        else { S.activeRoot = root; }
         // 标记 intent，仅在用户触发时显示 loading
-        root.classList.add('intent'); btn.classList.add('loading'); core.setAttribute('preload','metadata'); if(core.readyState < 3){ try{ core.load(); }catch(e){} }
-        // 播放/暂停
-        document.querySelectorAll('[data-player] .btn.primary').forEach(b=>{ if(b!==btn) b.classList.remove('loading'); });
-        const p = core.paused ? core.play() : core.pause(); if(p && p.catch){ p.catch(()=>{ btn.classList.remove('loading'); root.classList.remove('intent'); }); }
+        root.classList.add('intent'); btn.classList.add('loading');
+        const ep = S.map.get(articleId) || {};
+        const ensure = (ep && ((Array.isArray(ep.sources)&&ep.sources.length>0) || ep.audio)) ? Promise.resolve(ep) : ensureDetail(ep);
+        ensure.then(()=>{
+          // 如果切换到新节目，重绑音源
+          if(S.activeId !== articleId){ wireSources(core, ep, false); S.activeId = articleId; }
+          S.activeRoot = root;
+          core.setAttribute('preload','metadata'); if(core.readyState < 3){ try{ core.load(); }catch(e){} }
+          // 播放/暂停
+          document.querySelectorAll('[data-player] .btn.primary').forEach(b=>{ if(b!==btn) b.classList.remove('loading'); });
+          const p = core.paused ? core.play() : core.pause(); if(p && p.catch){ p.catch(()=>{ btn.classList.remove('loading'); root.classList.remove('intent'); }); }
+        });
       },
       skip(btn, d){ core.currentTime=Math.max(0, Math.min((core.currentTime||0)+d, core.duration||Infinity)); },
       rate(btn){ const steps=[1,1.2,1.5]; const cur=parseFloat(core.playbackRate.toFixed(1)); const i=Math.max(0, steps.indexOf(cur)); const next=steps[(i+1)%steps.length]; core.playbackRate=next; btn.textContent=(next.toString().replace(/\.0$/,''))+'x'; if(S.activeRoot && S.activeRoot!==btn.closest('[data-player]')){ const r=S.activeRoot.querySelector('[data-rate]'); if(r) r.textContent=btn.textContent; } }
