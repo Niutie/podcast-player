@@ -56,6 +56,20 @@
         { "src": "/episodes/04/audio.mp3", "type": "audio/mpeg" }
       ],
       "tags": ["基础概念"]
+    },
+    {
+      "id": "05",
+      "title": "API全生命周期管理 - 从设计到下线",
+      "date": "2025-08-14",
+      "publishAt": "2025-08-10T12:00:00+08:00",
+      "status": "published",
+      "description": "“API（应用程序接口）已成为企业重要的“数字资产”。如同任何有价值的产品一样，API也需要一套规范化的管理流程，涵盖从其诞生到最终停用的所有阶段。这套系统化、规范化的管理就是“API全生命周期管理”。其核心目标是确保API在整个生命周期中保持高质量、高安全性和高效率，从而有效支撑业务的快速迭代和发展。",
+      "cover": "/episodes/04/cover.webp",
+      "sources": [
+        { "src": "/episodes/04/audio.m4a", "type": "audio/mp4" },
+        { "src": "/episodes/04/audio.mp3", "type": "audio/mpeg" }
+      ],
+      "tags": ["基础概念"]
     }
   ]
 }
