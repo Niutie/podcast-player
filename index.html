@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <title>派拉API网关产品部门培训（内测）</title>
+  <title>派拉API网关产品部门培训</title>
   <meta name="description" content="企业培训播客：搜索、分类、当期内容、自定义音频播放器、往期回顾。" />
   <link rel="icon" href="/favicon.ico" />
   <!-- 优先拉取索引；若没有 index.json，会自动回退到 episodes.json -->
@@ -91,7 +91,7 @@
 </head>
 <body>
   <header>
-    <div class="bar">派拉API网关产品部门培训</div>
+    <div class="bar">派拉API网关产品部门培训（内测）</div>
   </header>
 
   <main>
@@ -214,25 +214,28 @@
     function mimeFrom(url){ if(!url) return ''; const ext = url.split('.').pop().toLowerCase().split('?')[0]; if(ext==='m4a'||ext==='mp4'||ext==='aac') return 'audio/mp4'; if(ext==='mp3') return 'audio/mpeg'; if(ext==='wav') return 'audio/wav'; return ''; }
 
     function wireSources(audio, ep, eager=false){
-      audio.innerHTML='';
+      // 组装可用音频源（默认 mp3 优先，可 ?prefer=m4a 覆盖）
       let srcs = Array.isArray(ep.sources) ? ep.sources : (ep.audio ? [{src: ep.audio, type: mimeFrom(ep.audio)}] : []);
-      // 优先顺序：默认 mp3 > m4a；可用 ?prefer=m4a 覆盖
       const score = (s)=>{
         const url = s?.src || '';
         const t = (s?.type || mimeFrom(url) || '').toLowerCase();
         const isMp3 = /audio\/mpeg/.test(t) || /\.mp3(\?|$)/i.test(url);
         const isM4a = /audio\/mp4/.test(t)  || /\.(m4a|mp4)(\?|$)/i.test(url);
         if(PREFER==='m4a') return isM4a?0:(isMp3?1:2);
-        // 默认 mp3 优先
         return isMp3?0:(isM4a?1:2);
       };
       srcs = srcs.filter(Boolean).sort((a,b)=> score(a)-score(b));
 
+      // 存在即写入 src 列表，优先 srcs[0]；同时保留 <source> 以便浏览器自行选择
+      audio.innerHTML='';
       srcs.forEach(s=>{ if(!s||!s.src) return; const e=document.createElement('source'); e.src=s.src; const t=s.type||mimeFrom(s.src); if(t) e.type=t; audio.appendChild(e); });
+      if (srcs.length>0) audio.setAttribute('src', srcs[0].src); else audio.removeAttribute('src');
       audio.setAttribute('playsinline','');
-      // 若只有一个来源，给 src 赋值，兼容个别老内核
-      const sources = audio.querySelectorAll('source');
-      if(sources.length===1){ audio.setAttribute('src', sources[0].src); } else { audio.removeAttribute('src'); }
+
+      // 记录到实例上，供错误/卡顿时自动切换
+      audio._srcs = srcs.map(s=> s && s.src).filter(Boolean);
+      audio._srcIdx = 0;
+
       if(eager){ try{ audio.load(); }catch(e){} }
     }
 
@@ -247,7 +250,7 @@
         const iconPlay = playBtn.querySelector('.ico-play');
         const iconPause = playBtn.querySelector('.ico-pause');
         const rateBtn = root.querySelector('[data-rate]');
-        const toTime = t=>{const s=Math.floor(t); const m=Math.floor(s/60), r=s%60; return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`};
+        const toTime = t=>{const s=Math.floor(t||0); const m=Math.floor(s/60), r=s%60; return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`};
 
         // 仅当用户点击后（root 加上 intent 类）才显示“加载中”
         const setLoading = (on)=>{ if(!root.classList.contains('intent')) return; playBtn.classList.toggle('loading', !!on); };
@@ -259,27 +262,37 @@
         audio.addEventListener('playing',   ()=> { setLoading(false); root.classList.remove('intent'); });
 
         audio.addEventListener('loadedmetadata', ()=>{ dur.textContent = toTime(audio.duration||0); });
-        audio.addEventListener('timeupdate', ()=>{ if(!isFinite(audio.duration)) return; const p=(audio.currentTime/audio.duration)*100; range.value=p||0; cur.textContent=toTime(audio.currentTime); });
+        let __lastProgress = Date.now();
+        audio.addEventListener('timeupdate', ()=>{ __lastProgress = Date.now(); if(!isFinite(audio.duration)) return; const p=(audio.currentTime/audio.duration)*100; range.value=p||0; cur.textContent=toTime(audio.currentTime); });
         audio.addEventListener('play', ()=>{ iconPlay.style.display='none'; iconPause.style.display='block'; });
         audio.addEventListener('pause',()=>{ iconPlay.style.display='block'; iconPause.style.display='none'; setLoading(false); root.classList.remove('intent'); const dk=document.getElementById('dock'); if(dk && dk.contains(audio) && typeof window.__dockOps?.hideIfIdle==='function'){ window.__dockOps.hideIfIdle(); } });
         audio.addEventListener('ended',()=>{ setLoading(false); root.classList.remove('intent'); const dk=document.getElementById('dock'); if(dk && dk.contains(audio) && typeof window.__dockOps?.hideIfIdle==='function'){ window.__dockOps.hideIfIdle(); } });
         if(rateBtn){ rateBtn.textContent=(audio.playbackRate.toFixed(1).replace(/\.0$/, ''))+'x'; }
 
-        // ---- 卡顿自愈（弱网 / 部分 WebView 兼容）----
+        // ---- 卡顿自愈 + 源自动切换（弱网 / WebView 兼容）----
         let stallTimer = null;
+        function nextSrc(){
+          const list = Array.isArray(audio._srcs) ? audio._srcs : [];
+          let idx = (audio._srcIdx||0) + 1;
+          if(idx < list.length){
+            audio._srcIdx = idx;
+            audio.src = list[idx];
+            try{ audio.load(); const p=audio.play(); if(p&&p.catch) p.catch(()=>{}); }catch(e){}
+          }
+        }
         function kick(){
           try{
             if (audio.readyState < 3) audio.load();
             if (isFinite(audio.duration) && (audio.currentTime < (audio.duration - 0.05))) {
-              audio.currentTime = Math.max(0, audio.currentTime + 0.01);
+              audio.currentTime = Math.max(0, (audio.currentTime||0) + 0.01);
             }
             const p = audio.play(); if(p && p.catch) p.catch(()=>{});
           }catch(e){}
         }
-        audio.addEventListener('waiting', ()=>{ clearTimeout(stallTimer); stallTimer = setTimeout(kick, 800); });
-        audio.addEventListener('stalled', ()=>{ clearTimeout(stallTimer); stallTimer = setTimeout(kick, 800); });
+        audio.addEventListener('waiting', ()=>{ clearTimeout(stallTimer); stallTimer = setTimeout(()=>{ (Date.now()-__lastProgress>1500) ? nextSrc() : kick(); }, 900); });
+        audio.addEventListener('stalled', ()=>{ clearTimeout(stallTimer); stallTimer = setTimeout(()=>{ (Date.now()-__lastProgress>1500) ? nextSrc() : kick(); }, 900); });
         audio.addEventListener('playing', ()=>{ clearTimeout(stallTimer); });
-        audio.addEventListener('error', ()=>{ clearTimeout(stallTimer); /* 可选：console.warn('audio error', audio.error?.code); */ });
+        audio.addEventListener('error', ()=>{ clearTimeout(stallTimer); nextSrc(); });
       },
       seek(input){ const root=input.closest('[data-player]'); const audio=root.querySelector('audio'); if(isFinite(audio.duration)) audio.currentTime=(input.value/100)*audio.duration; },
       playPause(btn){
@@ -302,8 +315,8 @@
         const audio = root.querySelector('audio');
         // 若卡片尚未 hydrate，马上补齐（不会触发加载）
         if(article && typeof article._hydrate === 'function'){ try{ article._hydrate(); }catch(e){} }
-        // 若还没有任何 source（极端竞态场景），即时补上
-        if(!audio.querySelector('source')){
+        // 若还没有任何 source 或没有直连 src（极端竞态场景），即时补上
+        if(!audio.querySelector('source') || !audio.getAttribute('src')){
           const ep = (articleId && S.map.get(articleId)) || {};
           wireSources(audio, ep, false);
         }
