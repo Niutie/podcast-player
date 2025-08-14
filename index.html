@@ -91,11 +91,21 @@
 </head>
 <body>
   <header>
-    <div class="bar">派拉API网关产品部门培训</div>
+    <div class="bar">派拉API网关产品部门培训（内测）</div>
   </header>
 
   <main>
-    <!--（已按你的要求移除搜索与分类筛选）-->
+    <!-- 搜索 -->
+    <div class="search-wrap" role="search">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input id="q" type="search" placeholder="搜索播客内容…" aria-label="搜索播客" />
+    </div>
+
+    <!-- 分类 -->
+    <div class="filters">
+      <div class="filter-title">🧭 分类筛选</div>
+      <div id="chips" class="chips"></div>
+    </div>
 
     <div class="section">本期内容</div>
     <section id="feature"></section>
@@ -186,13 +196,13 @@
     const feature = el('#feature');
     const list = el('#list');
     const more = el('#more');
-    const chips = null;
-    const q = null;
+    const chips = el('#chips');
+    const q = el('#q');
     const count = el('#count');
     const core = document.getElementById('core'); // 单实例全局音频
     el('#year').textContent = new Date().getFullYear();
 
-    const S = { raw: [], filtered: [], page: 0, map: new Map(), details: new Map(), activeId: null, activeRoot: null, _rest: [] };
+    const S = { raw: [], filtered: [], page: 0, tag: '全部', q: '', map: new Map(), details: new Map() };
     const QP = new URLSearchParams(location.search);
     const PREVIEW = QP.has('preview');
     const PREFER = (QP.get('prefer') || 'mp3').toLowerCase(); // 默认优先 mp3，可用 ?prefer=m4a 覆盖
@@ -257,12 +267,19 @@
       rate(btn){ const steps=[1,1.2,1.5]; const cur=parseFloat(core.playbackRate.toFixed(1)); const i=Math.max(0, steps.indexOf(cur)); const next=steps[(i+1)%steps.length]; core.playbackRate=next; btn.textContent=(next.toString().replace(/\.0$/,''))+'x'; if(S.activeRoot && S.activeRoot!==btn.closest('[data-player]')){ const r=S.activeRoot.querySelector('[data-rate]'); if(r) r.textContent=btn.textContent; } }
     };
 
-    function buildChips(){}
+    function buildChips(){
+      const set = new Set(); (S.raw||[]).forEach(e => (e.tags||[]).forEach(t => set.add(t)));
+      const ordered = ['全部', ...Array.from(set)];
+      chips.innerHTML = ordered.map(name => `<button class="chip${name===S.tag?' active':''}" data-tag="${name}">${name}</button>`).join('');
+      chips.onclick = (ev)=>{ const btn=ev.target.closest('.chip'); if(!btn) return; const t=btn.dataset.tag; if(!t||t===S.tag) return; S.tag=t; chips.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active', c.dataset.tag===S.tag)); apply(); };
+    }
 
     function apply(){
+      const qtext = S.q.trim().toLowerCase();
       const now = Date.now();
+
       const isVisible = (e)=>{
-        if (PREVIEW) return true;
+        if (PREVIEW) return true; // 预览模式显示全部
         if (e == null) return false;
         if (e.published === false || e.visible === false) return false;
         if (e.status === 'draft') return false;
@@ -272,23 +289,34 @@
         if (e.expireAt && isFinite(exp) && now >= exp) return false;
         return true;
       };
-      S.filtered = S.raw.filter(isVisible);
+
+      S.filtered = S.raw.filter(e => {
+        if (!isVisible(e)) return false;
+        const okTag=(S.tag==='全部')||(e.tags||[]).includes(S.tag);
+        if (!okTag) return false;
+        const inText=!qtext || [e.title,e.description||'',...(e.tags||[])].join(' ').toLowerCase().includes(qtext);
+        return inText;
+      });
+
+      // 置顶逻辑：featured 或者在 pinnedUntil 之前
       const pin = (e)=> (e?.featured===true) || (e?.pinnedUntil && (now < new Date(e.pinnedUntil).getTime())) ? 1 : 0;
       const pubTime = (e)=> new Date(e.publishAt || e.date || 0).getTime();
+
       S.filtered.sort((a,b)=> pin(b)-pin(a) || pubTime(b)-pubTime(a));
       S.page = 0;
       render();
     }
 
     function render(){
+      
       feature.innerHTML=''; list.innerHTML='';
       const total=S.filtered.length; if(total===0){ count.textContent='显示 0/0 期'; more.disabled=true; return; }
       const first=S.filtered[0]; feature.appendChild(renderFeature(first));
       const rest=S.filtered.slice(1); S._rest=rest;
       count.textContent=`显示 ${Math.min(S.page*PAGE_SIZE + Math.min(PAGE_SIZE, rest.length), rest.length)}/${rest.length} 期`;
       more.disabled=rest.length===0; S.page=0; loadMore();
+      
       observePlayers();
-      syncActiveUI();
     }
 
     function ensureDetail(ep){
@@ -370,8 +398,8 @@
       const items=S._rest.slice(start,end); const nodes = items.map(ep=> renderCard(ep)); nodes.forEach(n=>list.appendChild(n)); S.page++;
       count.textContent=`显示 ${Math.min(end, S._rest.length)}/${S._rest.length} 期`;
       if(end>=S._rest.length){ more.disabled=true; more.textContent='没有更多了'; } else { more.disabled=false; more.textContent='加载更多'; }
+      
       observePlayers();
-      syncActiveUI();
     }
 
     async function getIndex(){
@@ -392,13 +420,14 @@
         const eps = await getIndex();
         S.raw = eps;
         // 建立索引
-        S.map.clear(); eps.forEach(e=> S.map.set(e.id, e));// 已移除分类，不需要 buildChips()
+        S.map.clear(); eps.forEach(e=> S.map.set(e.id, e));
+        buildChips();
         apply();
       }catch(e){ console.error(e); }
     }
 
     more.addEventListener('click', loadMore);
-    // 搜索已移除，不绑定监听 });
+    q.addEventListener('input', e => { S.q=e.target.value; apply(); });
 
     // 单实例模式：不再移动 DOM 到 dock，仅保留占位容器以备将来做迷你控制条
     const dock=document.getElementById('dock'); dock.hidden=true; window.__dockOps = { hideIfIdle: ()=>{}, reattach: ()=>null };
@@ -411,24 +440,6 @@
       if(!('IntersectionObserver' in window)) return;
       if(!io){ io = new IntersectionObserver((entries)=>{ entries.forEach(entry=>{ if(entry.isIntersecting){ const article = entry.target; io.unobserve(article); if(typeof article._hydrate === 'function'){ article._hydrate(); } } }); }, { rootMargin: '200px 0px', threshold: 0.01 }); }
       document.querySelectorAll('article.card').forEach(p=>{ if(!p._obs){ io.observe(p); p._obs=true; } });
-    }
-    // 同步当前播放 UI（在重渲染或分页后调用）
-    function syncActiveUI(){
-      if(!S.activeId) return;
-      const host = document.querySelector(`[data-id="${S.activeId}"] [data-player]`);
-      if(host){ S.activeRoot = host; }
-      const r = S.activeRoot; if(!r) return;
-      const cur=r.querySelector('[data-cur]'); const dur=r.querySelector('[data-dur]'); const range=r.querySelector('.range'); const play=r.querySelector('[data-toggle]'); const iconPlay=r.querySelector('.ico-play'); const iconPause=r.querySelector('.ico-pause'); const rate=r.querySelector('[data-rate]');
-      const toTime = t=>{const s=Math.floor(t||0); const m=Math.floor(s/60), x=s%60; return `${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`};
-      if(dur) dur.textContent = isFinite(core.duration)? toTime(core.duration): '--:--';
-      if(cur) cur.textContent = toTime(core.currentTime||0);
-      if(range && isFinite(core.duration)) range.value = (core.currentTime/core.duration)*100 || 0;
-      if(rate) rate.textContent = (core.playbackRate.toFixed(1).replace(/\.0$/,''))+'x';
-      const playing = !core.paused;
-      if(iconPlay) iconPlay.style.display = playing?'none':'block';
-      if(iconPause) iconPause.style.display = playing?'block':'none';
-      if(play) play.classList.remove('loading');
-      if(r) r.classList.remove('intent');
     }
 
     // 绑定全局内核事件（只绑定一次）
